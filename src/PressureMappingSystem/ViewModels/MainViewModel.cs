@@ -671,8 +671,33 @@ public class MainViewModel : ViewModelBase, IDisposable
 
         frame.ComputeStatistics();
 
-        // ── 自訂校正乘數 ──
-        if (_customCalFactors != null)
+        // ── 自訂校正 ──
+        // v2：若當前 profile 有擬合曲線（FitParameters），
+        // 計算「整片 raw 總和 → 校正後總重量」的比值，等比例套用到每一點。
+        // v1 fallback：若無擬合曲線但有舊格式 _customCalFactors，套用每點乘數。
+        var profile = _selectedCalProfile;
+        if (profile != null && profile.HasFit)
+        {
+            double rawSum = 0;
+            for (int r = 0; r < SensorConfig.Rows; r++)
+                for (int c = 0; c < SensorConfig.Cols; c++)
+                    rawSum += frame.PressureGrams[r, c];
+
+            if (rawSum > 1e-6)
+            {
+                double calibratedTotal = profile.ApplyCurve(rawSum);
+                double scale = calibratedTotal / rawSum;
+                // 限制放大倍率到合理範圍，避免壞擬合造成爆炸
+                if (scale > 0 && scale < 1e4 && !double.IsNaN(scale) && !double.IsInfinity(scale))
+                {
+                    for (int r = 0; r < SensorConfig.Rows; r++)
+                        for (int c = 0; c < SensorConfig.Cols; c++)
+                            frame.PressureGrams[r, c] *= scale;
+                    frame.ComputeStatistics();
+                }
+            }
+        }
+        else if (_customCalFactors != null)
         {
             for (int r = 0; r < SensorConfig.Rows; r++)
                 for (int c = 0; c < SensorConfig.Cols; c++)
@@ -1490,25 +1515,81 @@ public class MainViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// 套用選取的校正設定檔
+    /// 擷取當前幀的 raw sum 與 active cells — v2 校正使用的原始量測資料。
     /// </summary>
-    private void ApplyCalibrationProfile(CustomCalibrationProfile profile)
+    public (double rawSum, int activeCells) GetCurrentRawReading()
     {
-        if (profile.Points.Count == 0)
+        var frame = CurrentFrame;
+        if (frame == null) return (0, 0);
+        double sum = 0;
+        int active = 0;
+        for (int r = 0; r < SensorConfig.Rows; r++)
+            for (int c = 0; c < SensorConfig.Cols; c++)
+            {
+                double v = frame.PressureGrams[r, c];
+                if (v > 0)
+                {
+                    sum += v;
+                    active++;
+                }
+            }
+        return (sum, active);
+    }
+
+    /// <summary>
+    /// 校正期間暫停套用當前 profile。用於 CalibrationWindow 擷取前呼叫，避免循環套用。
+    /// </summary>
+    private CustomCalibrationProfile? _tempSuspendedProfile;
+    public void SuspendCalibrationForCapture()
+    {
+        if (_selectedCalProfile != null && _tempSuspendedProfile == null)
         {
-            // 「無校正」— 清除
+            _tempSuspendedProfile = _selectedCalProfile;
+            _selectedCalProfile = null;
+            OnPropertyChanged(nameof(SelectedCalProfile));
+        }
+    }
+    public void ResumeCalibrationAfterCapture()
+    {
+        if (_tempSuspendedProfile != null)
+        {
+            _selectedCalProfile = _tempSuspendedProfile;
+            _tempSuspendedProfile = null;
+            OnPropertyChanged(nameof(SelectedCalProfile));
+        }
+    }
+
+    /// <summary>
+    /// 套用選取的校正設定檔。
+    /// v2：若 profile 有擬合曲線（HasFit），處理 pipeline 會在每幀計算 scale 套用。
+    /// v1 fallback：若 profile 無擬合但有 Points 資料，退回舊的單一 factor 乘數。
+    /// </summary>
+    public void ApplyCalibrationProfile(CustomCalibrationProfile profile)
+    {
+        if (profile == null || profile.Points.Count == 0)
+        {
+            // 「無校正」— 清除兩種表
             _customCalFactors = null;
             StatusText = "自訂校正已清除";
             return;
         }
 
-        double factor = profile.ComputeGlobalFactor();
-        _customCalFactors = new double[SensorConfig.Rows, SensorConfig.Cols];
-        for (int r = 0; r < SensorConfig.Rows; r++)
-            for (int c = 0; c < SensorConfig.Cols; c++)
-                _customCalFactors[r, c] = factor;
-
-        StatusText = $"已套用校正: {profile.Name} (factor={factor:F3})";
+        if (profile.HasFit)
+        {
+            // 新版：曲線擬合，處理 pipeline 會動態使用 profile.ApplyCurve
+            _customCalFactors = null;  // 清除舊 factor 避免重複套用
+            StatusText = $"已套用校正（{profile.FitMethod}）: {profile.Name}";
+        }
+        else
+        {
+            // 舊版：單一全域乘數
+            double factor = profile.ComputeGlobalFactor();
+            _customCalFactors = new double[SensorConfig.Rows, SensorConfig.Cols];
+            for (int r = 0; r < SensorConfig.Rows; r++)
+                for (int c = 0; c < SensorConfig.Cols; c++)
+                    _customCalFactors[r, c] = factor;
+            StatusText = $"已套用校正 (v1 legacy): {profile.Name} (factor={factor:F3})";
+        }
     }
 
     public void Dispose()
