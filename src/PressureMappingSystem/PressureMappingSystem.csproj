@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>Resources\app.ico</ApplicationIcon>
+    <AssemblyName>PressureMappingSystem</AssemblyName>
+    <RootNamespace>PressureMappingSystem</RootNamespace>
+    <Version>1.2.0</Version>
+    <Description>TRANZX Pressure Distribution Sensor Mapping System</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core -->
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+
+    <!-- 2D Rendering -->
+    <PackageReference Include="SkiaSharp" Version="2.88.7" />
+    <PackageReference Include="SkiaSharp.Views.WPF" Version="2.88.7" />
+
+    <!-- 3D Surface Plot: uses built-in WPF Viewport3D (no external dependency) -->
+
+    <!-- Charts (Trend graph) -->
+    <PackageReference Include="OxyPlot.Wpf" Version="2.1.2" />
+
+    <!-- PDF Report Generation -->
+    <PackageReference Include="QuestPDF" Version="2024.3.0" />
+
+    <!-- USB Device Detection (Plug & Play) -->
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\**\*" />
+  </ItemGroup>
+
+</Project>

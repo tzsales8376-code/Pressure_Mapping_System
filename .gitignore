@@ -1,0 +1,36 @@
+# ── Build outputs ──
+bin/
+obj/
+out/
+publish/
+
+# ── IDE / Editor ──
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln.docstates
+*.userprefs
+
+# ── NuGet ──
+packages/
+*.nupkg
+project.lock.json
+
+# ── OS files ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs & temp ──
+*.log
+*.tmp
+*.bak
+*.swp
+
+# ── Exported data (user-generated, may be large) ──
+exports/
+recordings/
+
+# ── Cowork / Claude session files ──
+.claude/

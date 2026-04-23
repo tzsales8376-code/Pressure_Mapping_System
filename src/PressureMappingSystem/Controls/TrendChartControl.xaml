@@ -1,0 +1,38 @@
+<UserControl x:Class="PressureMappingSystem.Controls.TrendChartControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:oxy="http://oxyplot.org/wpf"
+             Background="#FF252536">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Controls -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="4">
+            <TextBlock Text="Trend Chart" Foreground="#FFED7D31" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" Margin="4,0"/>
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="8,2"/>
+            <TextBlock Text="Window:" Foreground="#FFE0E0E8" VerticalAlignment="Center" Margin="4,0"/>
+            <ComboBox x:Name="TimeWindowCombo" Width="80" SelectedIndex="1" SelectionChanged="TimeWindowChanged">
+                <ComboBoxItem Content="5 sec"/>
+                <ComboBoxItem Content="10 sec"/>
+                <ComboBoxItem Content="30 sec"/>
+                <ComboBoxItem Content="60 sec"/>
+            </ComboBox>
+            <CheckBox x:Name="ShowPeakLine" Content="Peak" Foreground="#FFE0E0E8" IsChecked="True"
+                      VerticalAlignment="Center" Margin="8,0" Checked="OnSeriesToggle" Unchecked="OnSeriesToggle"/>
+            <CheckBox x:Name="ShowTotalLine" Content="Total Force" Foreground="#FFE0E0E8" IsChecked="True"
+                      VerticalAlignment="Center" Margin="8,0" Checked="OnSeriesToggle" Unchecked="OnSeriesToggle"/>
+            <CheckBox x:Name="ShowAvgLine" Content="Average" Foreground="#FFE0E0E8" IsChecked="True"
+                      VerticalAlignment="Center" Margin="8,0" Checked="OnSeriesToggle" Unchecked="OnSeriesToggle"/>
+            <CheckBox x:Name="ShowActiveCount" Content="Active Points" Foreground="#FFE0E0E8" IsChecked="False"
+                      VerticalAlignment="Center" Margin="8,0" Checked="OnSeriesToggle" Unchecked="OnSeriesToggle"/>
+            <Button Content="Clear" Margin="8,0" Padding="8,3" Click="ClearChart_Click"
+                    Background="#FF2B5797" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+        </StackPanel>
+
+        <!-- OxyPlot Chart -->
+        <oxy:PlotView x:Name="PlotView" Grid.Row="1" Background="#FF252536"/>
+    </Grid>
+</UserControl>
