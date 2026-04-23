@@ -1,5 +1,7 @@
 using System.Windows;
+using System.Windows.Controls;
 using PressureMappingSystem.Models;
+using PressureMappingSystem.Services;
 using PressureMappingSystem.ViewModels;
 
 namespace PressureMappingSystem.Controls;
@@ -7,9 +9,9 @@ namespace PressureMappingSystem.Controls;
 public partial class SettingsWindow : Window
 {
     private readonly MainViewModel _vm;
+    private bool _initializing = true;
 
     // 全域 kg → 單點 g 換算
-    // totalKg * 1000g / 1600 points = grams per point
     private static double KgToPerPointGrams(double totalKg)
         => totalKg * 1000.0 / (SensorConfig.Rows * SensorConfig.Cols);
 
@@ -21,25 +23,68 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         _vm = vm;
 
-        // 把目前 ViewModel 的 per-point grams 轉回 kg 顯示
+        // Display Range
         double currentKg = PerPointGramsToKg(_vm.DisplayThreshold);
         ThresholdSlider.Value = currentKg;
         UpdateLabels(currentKg);
 
-        // 最低感測門檻滑桿初始化
+        // Noise Floor
         NoiseFloorSlider.Value = _vm.NoiseFloorGrams;
         NoiseFloorValueText.Text = _vm.NoiseFloorGrams.ToString("F0");
 
-        // 訊號純淨度滑桿初始化
+        // Signal Purity
         NoiseFilterSlider.Value = _vm.NoiseFilterPercent;
         UpdateNoiseFilterLabels(_vm.NoiseFilterPercent);
+
+        // Filter Mode
+        FilterModeCombo.SelectedIndex = (int)_vm.FilterMode;
+        TcfResponseSlider.Value = _vm.TcfResponseMs;
+        TcfStabilitySlider.Value = _vm.TcfStabilityThreshold;
+        TcfResponseText.Text = _vm.TcfResponseMs.ToString("F0");
+        TcfStabilityText.Text = _vm.TcfStabilityThreshold.ToString("F0");
+        UpdateTcfPanelVisibility();
+
+        _initializing = false;
     }
 
+    // ── Filter Mode ──
+    private void FilterModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_initializing || _vm == null) return;
+        _vm.FilterMode = (FilterMode)FilterModeCombo.SelectedIndex;
+        UpdateTcfPanelVisibility();
+    }
+
+    private void UpdateTcfPanelVisibility()
+    {
+        if (TcfParamsPanel == null) return;
+        TcfParamsPanel.Visibility = FilterModeCombo.SelectedIndex == (int)FilterMode.TemporalCoherence
+            ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void TcfResponseSlider_ValueChanged(object sender,
+        RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing || _vm == null) return;
+        _vm.TcfResponseMs = e.NewValue;
+        if (TcfResponseText != null)
+            TcfResponseText.Text = e.NewValue.ToString("F0");
+    }
+
+    private void TcfStabilitySlider_ValueChanged(object sender,
+        RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing || _vm == null) return;
+        _vm.TcfStabilityThreshold = e.NewValue;
+        if (TcfStabilityText != null)
+            TcfStabilityText.Text = e.NewValue.ToString("F0");
+    }
+
+    // ── Display Range ──
     private void ThresholdSlider_ValueChanged(object sender,
         RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_vm == null) return;
-
+        if (_initializing || _vm == null) return;
         double totalKg = e.NewValue;
         double perPointG = KgToPerPointGrams(totalKg);
         _vm.DisplayThreshold = perPointG;
@@ -53,20 +98,21 @@ public partial class SettingsWindow : Window
         PerPointText.Text = $"(Per point: {perPointG:F1} g)";
     }
 
+    // ── Noise Floor ──
     private void NoiseFloorSlider_ValueChanged(object sender,
         RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_vm == null) return;
+        if (_initializing || _vm == null) return;
         _vm.NoiseFloorGrams = e.NewValue;
         if (NoiseFloorValueText != null)
             NoiseFloorValueText.Text = e.NewValue.ToString("F0");
     }
 
+    // ── Signal Purity ──
     private void NoiseFilterSlider_ValueChanged(object sender,
         RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_vm == null) return;
-
+        if (_initializing || _vm == null) return;
         double percent = e.NewValue;
         _vm.NoiseFilterPercent = percent;
         UpdateNoiseFilterLabels(percent);
@@ -84,10 +130,8 @@ public partial class SettingsWindow : Window
         }
         else
         {
-            int dLevel = (int)(100 - percent); // 5% → D95, 10% → D90
+            int dLevel = (int)(100 - percent);
             NoiseFilterDLevelText.Text = dLevel.ToString();
-
-            // 以峰值 100g 為範例計算門檻（含 ×3 放大係數）
             double exThreshold = 100 * (percent / 100.0) * 3.0;
             NoiseFilterDescText.Text =
                 $"(門檻=峰值×{percent:F0}%×3 | 例：峰值 100g → 門檻 {exThreshold:F1}g + 邊緣侵蝕)";
@@ -96,9 +140,12 @@ public partial class SettingsWindow : Window
 
     private void Reset_Click(object sender, RoutedEventArgs e)
     {
-        ThresholdSlider.Value = 1600; // 滿量程 1600 kg total (= 1000 g/point)
-        NoiseFloorSlider.Value = 5;   // 最低感測門檻重置為規格值
-        NoiseFilterSlider.Value = 0;  // 訊號純淨度重置
+        ThresholdSlider.Value = 1600;
+        NoiseFloorSlider.Value = 5;
+        NoiseFilterSlider.Value = 0;
+        FilterModeCombo.SelectedIndex = 0;  // Legacy
+        TcfResponseSlider.Value = 80;
+        TcfStabilitySlider.Value = 15;
     }
 
     private void Close_Click(object sender, RoutedEventArgs e)

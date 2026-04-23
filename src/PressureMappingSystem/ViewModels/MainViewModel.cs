@@ -112,6 +112,12 @@ public class MainViewModel : ViewModelBase, IDisposable
     private CustomCalibrationProfile? _selectedCalProfile;
     private string _calProfileFolder = "";
 
+    // ── Signal Filter (v2: 可切換 Legacy 或 TCF) ──
+    private FilterMode _filterMode = FilterMode.Legacy;
+    private double _tcfResponseMs = 80;
+    private double _tcfStabilityThreshold = 15;
+    private ISignalFilter _signalFilter;  // 當前使用的濾波器
+
     // Diagnostic
     private string _diagnosticLog = "";
     private string _rawSerialData = "";
@@ -211,7 +217,11 @@ public class MainViewModel : ViewModelBase, IDisposable
     public double NoiseFilterPercent
     {
         get => _noiseFilterPercent;
-        set => SetProperty(ref _noiseFilterPercent, Math.Clamp(value, 0, 50));
+        set
+        {
+            if (SetProperty(ref _noiseFilterPercent, Math.Clamp(value, 0, 50)))
+                RebuildSignalFilter();
+        }
     }
 
     /// <summary>
@@ -221,8 +231,70 @@ public class MainViewModel : ViewModelBase, IDisposable
     public double NoiseFloorGrams
     {
         get => _noiseFloorGrams;
-        set => SetProperty(ref _noiseFloorGrams, Math.Clamp(value, 5, 100));
+        set
+        {
+            if (SetProperty(ref _noiseFloorGrams, Math.Clamp(value, 5, 100)))
+                RebuildSignalFilter();
+        }
     }
+
+    /// <summary>
+    /// 濾波器模式：Legacy (原演算法) 或 TemporalCoherence (TCF)
+    /// 切換後立即重建濾波器並清除內部狀態
+    /// </summary>
+    public FilterMode FilterMode
+    {
+        get => _filterMode;
+        set
+        {
+            if (SetProperty(ref _filterMode, value))
+            {
+                RebuildSignalFilter();
+                StatusText = $"濾波器模式切換為：{_signalFilter.Name}";
+            }
+        }
+    }
+
+    /// <summary>TCF 響應時間（ms）：短 → 靈敏、長 → 更平穩</summary>
+    public double TcfResponseMs
+    {
+        get => _tcfResponseMs;
+        set
+        {
+            if (SetProperty(ref _tcfResponseMs, Math.Clamp(value, 30, 500)))
+                RebuildSignalFilter();
+        }
+    }
+
+    /// <summary>TCF 穩定度門檻：大→寬容（更多點被信任）、小→嚴格（更多點被侵蝕）</summary>
+    public double TcfStabilityThreshold
+    {
+        get => _tcfStabilityThreshold;
+        set
+        {
+            if (SetProperty(ref _tcfStabilityThreshold, Math.Clamp(value, 2, 50)))
+                RebuildSignalFilter();
+        }
+    }
+
+    /// <summary>當前濾波器名稱（供 UI 顯示）</summary>
+    public string SignalFilterName => _signalFilter?.Name ?? "";
+
+    /// <summary>重建 signal filter，同時清除 TCF 的 ring buffer（避免舊狀態影響）</summary>
+    private void RebuildSignalFilter()
+    {
+        _signalFilter = SignalFilterFactory.Create(_filterMode, BuildFilterParameters());
+        OnPropertyChanged(nameof(SignalFilterName));
+    }
+
+    private FilterParameters BuildFilterParameters() => new()
+    {
+        NoiseFloorGrams = _noiseFloorGrams,
+        NoiseFilterPercent = _noiseFilterPercent,
+        Fps = 60,
+        ResponseMs = _tcfResponseMs,
+        StabilityThreshold = _tcfStabilityThreshold,
+    };
 
     /// <summary>
     /// 內插層級：1=原始(1×1), 3=3×3內插, 5=5×5內插
@@ -258,6 +330,7 @@ public class MainViewModel : ViewModelBase, IDisposable
                     _zeroBaselineMax = null;
                     _perPointThreshold = null;
                     _zeroAccumCount = 0;
+                    _signalFilter?.Reset();   // 清除時間濾波器的歷史
                     StatusText = "歸零已關閉，基線已清除";
                 }
             }
@@ -271,6 +344,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         _zeroBaseline = null;
         _perPointThreshold = null;
         _zeroAccumCount = 0;
+        _signalFilter?.Reset();   // 歸零採樣前先清 TCF 歷史，避免基線期資料混入
     }
 
     // Localization shortcut
@@ -371,6 +445,9 @@ public class MainViewModel : ViewModelBase, IDisposable
         }
         catch { }
         _pdfReportService = new PdfReportService(_exportService, _exportFolder, logoPath);
+
+        // Initialize signal filter with default (Legacy)
+        _signalFilter = SignalFilterFactory.Create(_filterMode, BuildFilterParameters());
 
         // Wire events
         _serialService.FrameReceived += OnFrameReceived;
@@ -570,104 +647,12 @@ public class MainViewModel : ViewModelBase, IDisposable
         }
 
         // ══════════════════════════════════════════════════════════════════
-        //  訊號純淨度過濾（兩階段自適應濾波）— 僅在滑桿 > 0 時啟用
-        //
-        //  Stage 1：增強全域門檻（×3 放大係數）
-        //    公式：threshold = peak × (slider/100) × 3.0
-        //    slider  5% → 門檻 = peak × 15% → 筆桿串擾(20g/167g=12%) 被移除
-        //    slider 10% → 門檻 = peak × 30%
-        //    腳掌(peak=80, 5%) → 門檻=12g → 漸變 15g+ 全部保留
-        //
-        //  Stage 2：自適應邊緣侵蝕（5×5 搜索半徑）
-        //    Stage 1 已移除串擾平台，Stage 2 清理殘留的邊界雜訊
-        //    使用 5×5 搜索半徑讓邊界點能看到更遠的高壓鄰居
-        //    比值 < 35% → 判定串擾 → 侵蝕
+        //  訊號濾波（可切換 Legacy 或 TCF 模式，由 SettingsWindow 設定）
+        //  Legacy = 原本的 訊號純淨度 + SpatialSignalProcess 管線
+        //  TCF    = Temporal-Coherence Filter（利用最近 N 幀的時間一致性）
         // ══════════════════════════════════════════════════════════════════
-        if (_noiseFilterPercent > 0)
-        {
-            int rows = SensorConfig.Rows;
-            int cols = SensorConfig.Cols;
+        _signalFilter.Process(frame.PressureGrams);
 
-            // ── Stage 1：增強全域門檻 ──
-            double framePeak = 0;
-            for (int r = 0; r < rows; r++)
-                for (int c = 0; c < cols; c++)
-                    if (frame.PressureGrams[r, c] > framePeak)
-                        framePeak = frame.PressureGrams[r, c];
-
-            if (framePeak > 0)
-            {
-                double dynamicThreshold = framePeak * (_noiseFilterPercent / 100.0) * 3.0;
-
-                for (int r = 0; r < rows; r++)
-                    for (int c = 0; c < cols; c++)
-                        if (frame.PressureGrams[r, c] > 0 && frame.PressureGrams[r, c] < dynamicThreshold)
-                            frame.PressureGrams[r, c] = 0;
-            }
-
-            // ── Stage 2：自適應邊緣侵蝕（5×5 搜索半徑）──
-            const double ErosionRatio = 0.35;
-            int maxPasses = Math.Max(1, (int)(_noiseFilterPercent * 1.5));
-
-            for (int pass = 0; pass < maxPasses; pass++)
-            {
-                var snap = (double[,])frame.PressureGrams.Clone();
-                bool anyEroded = false;
-
-                for (int r = 0; r < rows; r++)
-                {
-                    for (int c = 0; c < cols; c++)
-                    {
-                        if (snap[r, c] <= 0) continue;
-
-                        // 5×5 搜索半徑（radius=2）：判斷邊界 + 找最強鄰居
-                        bool isBoundary = false;
-                        double maxNeighbor = 0;
-
-                        for (int dr = -2; dr <= 2; dr++)
-                        {
-                            for (int dc = -2; dc <= 2; dc++)
-                            {
-                                if (dr == 0 && dc == 0) continue;
-                                int nr = r + dr, nc = c + dc;
-                                if (nr < 0 || nr >= rows || nc < 0 || nc >= cols)
-                                {
-                                    // 只有直接相鄰才算邊界
-                                    if (Math.Abs(dr) <= 1 && Math.Abs(dc) <= 1)
-                                        isBoundary = true;
-                                    continue;
-                                }
-                                if (snap[nr, nc] <= 0)
-                                {
-                                    if (Math.Abs(dr) <= 1 && Math.Abs(dc) <= 1)
-                                        isBoundary = true;
-                                }
-                                else if (snap[nr, nc] > maxNeighbor)
-                                {
-                                    maxNeighbor = snap[nr, nc];
-                                }
-                            }
-                        }
-
-                        // 邊界點且值遠低於 5×5 範圍內最強鄰居 → 串擾
-                        if (isBoundary && maxNeighbor > 0 && snap[r, c] < maxNeighbor * ErosionRatio)
-                        {
-                            frame.PressureGrams[r, c] = 0;
-                            anyEroded = true;
-                        }
-                    }
-                }
-
-                if (!anyEroded) break;
-            }
-        }
-
-        // ══════════════════════════════════════════════════
-        //  空間訊號處理（Spatial Signal Processing）
-        //  Step 1: 清除孤立雜訊（受力區外的零星亮點）
-        //  Step 2: 多輪迭代填補空洞（受力區內的零值）
-        // ══════════════════════════════════════════════════
-        SpatialSignalProcess(frame.PressureGrams);
 
         frame.ComputeStatistics();
 
@@ -716,195 +701,6 @@ public class MainViewModel : ViewModelBase, IDisposable
         lock (_frameLock) { _pendingFrame = frame; }
     }
 
-    // ══════════════════════════════════════════════════════════
-    //  空間訊號處理：去雜訊 + 空洞填補
-    // ══════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// 統計某點 (r,c) 在 data 中的鄰居資訊（含對角，共 8 鄰居）
-    /// 回傳非零鄰居數量、非零值總和
-    /// </summary>
-    private static void CountNeighbors(double[,] data, int r, int c, int rows, int cols,
-        out int activeCount, out double activeSum)
-    {
-        activeCount = 0;
-        activeSum = 0;
-        for (int dr = -1; dr <= 1; dr++)
-        {
-            for (int dc = -1; dc <= 1; dc++)
-            {
-                if (dr == 0 && dc == 0) continue;
-                int nr = r + dr, nc = c + dc;
-                if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
-                double v = data[nr, nc];
-                if (v > 0) { activeCount++; activeSum += v; }
-            }
-        }
-    }
-
-    /// <summary>
-    /// 空間訊號處理（四步驟）：
-    ///   Step 1 — 清除孤立雜訊（3×3 + 5×5 擴展檢查）
-    ///   Step 2 — 多輪迭代填補空洞（≥2 鄰居有壓力就填，最多 10 輪）
-    ///   Step 2b — 內部空洞強制填補（四方向搜索，確保壓力區內無殘留空洞）
-    ///   Step 3 — Gaussian 平滑（σ=0.8, 3×3 核心，邊界保護）
-    /// </summary>
-    private static void SpatialSignalProcess(double[,] data)
-    {
-        int rows = SensorConfig.Rows;
-        int cols = SensorConfig.Cols;
-
-        // ── Step 1：清除孤立雜訊（含 5×5 擴展檢查）──
-        // 對每個非零點，先檢查 8 鄰居；如果 ≤ 1 個有壓力，
-        // 再擴展到 5×5 範圍檢查；如果 ≤ 3 個有壓力 → 歸零
-        {
-            var snap = (double[,])data.Clone();
-            for (int r = 0; r < rows; r++)
-            {
-                for (int c = 0; c < cols; c++)
-                {
-                    if (snap[r, c] <= 0) continue;
-                    CountNeighbors(snap, r, c, rows, cols, out int ac, out _);
-                    if (ac <= 1)
-                    {
-                        int wideCount = 0;
-                        for (int dr = -2; dr <= 2; dr++)
-                            for (int dc = -2; dc <= 2; dc++)
-                            {
-                                if (dr == 0 && dc == 0) continue;
-                                int nr = r + dr, nc = c + dc;
-                                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && snap[nr, nc] > 0)
-                                    wideCount++;
-                            }
-                        if (wideCount <= 3)
-                            data[r, c] = 0;
-                    }
-                }
-            }
-        }
-
-        // ── Step 2：多輪迭代 Inpainting（空洞填補）──
-        // 多輪迭代確保大洞也能從邊緣逐步填滿
-        {
-            const int MaxFillPasses = 10;
-            for (int pass = 0; pass < MaxFillPasses; pass++)
-            {
-                var snap = (double[,])data.Clone();
-                bool anyFilled = false;
-
-                for (int r = 0; r < rows; r++)
-                {
-                    for (int c = 0; c < cols; c++)
-                    {
-                        if (snap[r, c] > 0) continue;
-
-                        CountNeighbors(snap, r, c, rows, cols, out int ac, out double asum);
-
-                        // 8 鄰居中 ≥ 2 個有壓力 → 受力區內空洞，填入鄰居平均
-                        if (ac >= 2)
-                        {
-                            data[r, c] = asum / ac;
-                            anyFilled = true;
-                        }
-                    }
-                }
-                if (!anyFilled) break;
-            }
-        }
-
-        // ── Step 2b：內部空洞強制填補 ──
-        // 經過 Step 2 後仍殘留的零點，用四方向搜索判斷是否在壓力區內部。
-        // 若在上下左右至少 3 個方向上能找到活躍點（搜索半徑 5 格），
-        // 代表此零點被壓力區包圍，應強制填入最近鄰居的平均值。
-        // 目的：消除全面受壓時因感測器死點造成的不自然空白
-        {
-            const int SearchRadius = 5;
-            bool anyFilled = true;
-            int maxRounds = 3; // 最多 3 輪，逐步從外向內填入
-
-            for (int round = 0; round < maxRounds && anyFilled; round++)
-            {
-                anyFilled = false;
-                var snap = (double[,])data.Clone();
-
-                for (int r = 0; r < rows; r++)
-                {
-                    for (int c = 0; c < cols; c++)
-                    {
-                        if (snap[r, c] > 0) continue;
-
-                        // 四方向搜索最近活躍點
-                        int directionsFound = 0;
-                        double neighborSum = 0;
-                        int neighborCount = 0;
-
-                        // 上
-                        for (int d = 1; d <= SearchRadius && r - d >= 0; d++)
-                            if (snap[r - d, c] > 0) { directionsFound++; neighborSum += snap[r - d, c]; neighborCount++; break; }
-                        // 下
-                        for (int d = 1; d <= SearchRadius && r + d < rows; d++)
-                            if (snap[r + d, c] > 0) { directionsFound++; neighborSum += snap[r + d, c]; neighborCount++; break; }
-                        // 左
-                        for (int d = 1; d <= SearchRadius && c - d >= 0; d++)
-                            if (snap[r, c - d] > 0) { directionsFound++; neighborSum += snap[r, c - d]; neighborCount++; break; }
-                        // 右
-                        for (int d = 1; d <= SearchRadius && c + d < cols; d++)
-                            if (snap[r, c + d] > 0) { directionsFound++; neighborSum += snap[r, c + d]; neighborCount++; break; }
-
-                        // 至少 3 個方向都有活躍點 → 此點在壓力區內部，強制填入
-                        if (directionsFound >= 3 && neighborCount > 0)
-                        {
-                            data[r, c] = neighborSum / neighborCount;
-                            anyFilled = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        // ── Step 3：Gaussian 平滑（σ=0.8, 3×3 核心）──
-        // 使用 Gaussian 核心產生更自然的壓力分佈漸層
-        {
-            const double s2 = 0.8 * 0.8 * 2.0; // 2σ²
-            var kernel = new double[3, 3];
-            double ksum = 0;
-            for (int dr = -1; dr <= 1; dr++)
-                for (int dc = -1; dc <= 1; dc++)
-                {
-                    double v = Math.Exp(-(dr * dr + dc * dc) / s2);
-                    kernel[dr + 1, dc + 1] = v;
-                    ksum += v;
-                }
-            for (int dr = 0; dr < 3; dr++)
-                for (int dc = 0; dc < 3; dc++)
-                    kernel[dr, dc] /= ksum;
-
-            var snap = (double[,])data.Clone();
-            for (int r = 1; r < rows - 1; r++)
-            {
-                for (int c = 1; c < cols - 1; c++)
-                {
-                    if (snap[r, c] <= 0) continue;
-
-                    double weighted = 0;
-                    double wTotal = 0;
-                    for (int dr = -1; dr <= 1; dr++)
-                        for (int dc = -1; dc <= 1; dc++)
-                        {
-                            double val = snap[r + dr, c + dc];
-                            double w = kernel[dr + 1, dc + 1];
-                            if (val > 0 || (dr == 0 && dc == 0))
-                            {
-                                weighted += val * w;
-                                wTotal += w;
-                            }
-                        }
-                    if (wTotal > 0)
-                        data[r, c] = weighted / wTotal;
-                }
-            }
-        }
-    }
 
     private void OnPlaybackFrame(object? sender, SensorFrame frame)
     {
