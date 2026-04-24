@@ -39,9 +39,9 @@ public partial class SettingsWindow : Window
         // Filter Mode
         FilterModeCombo.SelectedIndex = (int)_vm.FilterMode;
         TcfResponseSlider.Value = _vm.TcfResponseMs;
-        TcfStabilitySlider.Value = _vm.TcfStabilityThreshold;
+        TcfNoiseSupSlider.Value = _vm.TcfNoiseSuppression;
         TcfResponseText.Text = _vm.TcfResponseMs.ToString("F0");
-        TcfStabilityText.Text = _vm.TcfStabilityThreshold.ToString("F0");
+        TcfNoiseSupText.Text = _vm.TcfNoiseSuppression.ToString("F0");
         UpdateTcfPanelVisibility();
 
         _initializing = false;
@@ -71,13 +71,13 @@ public partial class SettingsWindow : Window
             TcfResponseText.Text = e.NewValue.ToString("F0");
     }
 
-    private void TcfStabilitySlider_ValueChanged(object sender,
+    private void TcfNoiseSupSlider_ValueChanged(object sender,
         RoutedPropertyChangedEventArgs<double> e)
     {
         if (_initializing || _vm == null) return;
-        _vm.TcfStabilityThreshold = e.NewValue;
-        if (TcfStabilityText != null)
-            TcfStabilityText.Text = e.NewValue.ToString("F0");
+        _vm.TcfNoiseSuppression = e.NewValue;
+        if (TcfNoiseSupText != null)
+            TcfNoiseSupText.Text = e.NewValue.ToString("F0");
     }
 
     // ── Display Range ──
@@ -145,7 +145,7 @@ public partial class SettingsWindow : Window
         NoiseFilterSlider.Value = 0;
         FilterModeCombo.SelectedIndex = 0;  // Legacy
         TcfResponseSlider.Value = 80;
-        TcfStabilitySlider.Value = 15;
+        TcfNoiseSupSlider.Value = 50;
     }
 
     private void Close_Click(object sender, RoutedEventArgs e)

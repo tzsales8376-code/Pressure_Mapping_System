@@ -21,7 +21,7 @@ public enum FilterMode
 {
     /// <summary>原本的 erosion + inpainting + gaussian 管線</summary>
     Legacy = 0,
-    /// <summary>時間一致性濾波（TCF）</summary>
+    /// <summary>時間一致性濾波（TCF v2）</summary>
     TemporalCoherence = 1,
 }
 
@@ -43,13 +43,29 @@ public static class SignalFilterFactory
 /// <summary>
 /// 濾波器共用參數（由 ViewModel 傳入）。
 /// Legacy 只用到 NoiseFloorGrams / NoiseFilterPercent，
-/// TCF 額外用到 ResponseMs / StabilityThreshold。
+/// TCF 額外用到 ResponseMs / NoiseSuppression / IslandThresholdRatio。
 /// </summary>
 public class FilterParameters
 {
     public double NoiseFloorGrams { get; set; } = 5.0;
     public double NoiseFilterPercent { get; set; } = 0;
     public double Fps { get; set; } = 60;
-    public double ResponseMs { get; set; } = 80;         // TCF 時間窗
-    public double StabilityThreshold { get; set; } = 15; // TCF 穩定度判斷門檻
+
+    /// <summary>TCF 時間窗長度（ms），決定 ring buffer 深度</summary>
+    public double ResponseMs { get; set; } = 80;
+
+    /// <summary>
+    /// TCF 雜訊抑制強度 0~100（v2 新版滑桿）
+    /// 0   = 最保留（接近原始觀測）
+    /// 50  = 平衡（預設）
+    /// 100 = 最積極抑制（ghost 清乾淨、可能影響邊緣）
+    /// 內部映射：stability_threshold = max(3, 30 - 0.25 × slider)
+    /// </summary>
+    public double NoiseSuppression { get; set; } = 50;
+
+    /// <summary>
+    /// TCF 連通域過濾：小於主連通域 importance 此比例的「孤立島」全部清除
+    /// 預設 0.1（主塊 10% 以下的小島視為 ghost）
+    /// </summary>
+    public double IslandThresholdRatio { get; set; } = 0.1;
 }

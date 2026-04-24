@@ -115,7 +115,7 @@ public class MainViewModel : ViewModelBase, IDisposable
     // ── Signal Filter (v2: 可切換 Legacy 或 TCF) ──
     private FilterMode _filterMode = FilterMode.Legacy;
     private double _tcfResponseMs = 80;
-    private double _tcfStabilityThreshold = 15;
+    private double _tcfNoiseSuppression = 50;
     private ISignalFilter _signalFilter;  // 當前使用的濾波器
 
     // Diagnostic
@@ -266,13 +266,16 @@ public class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
-    /// <summary>TCF 穩定度門檻：大→寬容（更多點被信任）、小→嚴格（更多點被侵蝕）</summary>
-    public double TcfStabilityThreshold
+    /// <summary>
+    /// TCF v2 雜訊抑制強度 0~100（預設 50）
+    /// 0 = 最保留（接近原始）、50 = 平衡、100 = 最積極（ghost 清乾淨）
+    /// </summary>
+    public double TcfNoiseSuppression
     {
-        get => _tcfStabilityThreshold;
+        get => _tcfNoiseSuppression;
         set
         {
-            if (SetProperty(ref _tcfStabilityThreshold, Math.Clamp(value, 2, 50)))
+            if (SetProperty(ref _tcfNoiseSuppression, Math.Clamp(value, 0, 100)))
                 RebuildSignalFilter();
         }
     }
@@ -293,7 +296,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         NoiseFilterPercent = _noiseFilterPercent,
         Fps = 60,
         ResponseMs = _tcfResponseMs,
-        StabilityThreshold = _tcfStabilityThreshold,
+        NoiseSuppression = _tcfNoiseSuppression,
     };
 
     /// <summary>
