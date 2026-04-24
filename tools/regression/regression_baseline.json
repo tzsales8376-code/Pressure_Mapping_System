@@ -1,0 +1,62 @@
+{
+  "_meta": {
+    "version": "tcf_v2",
+    "description": "TCF v2 regression baseline — 凍結時的六情境平均指標",
+    "tolerances": {
+      "mae": {
+        "abs_tol": 0.3,
+        "rel_tol": 0.15
+      },
+      "ghost_ratio": {
+        "abs_tol": 0.02,
+        "rel_tol": 0.0
+      },
+      "hole_ratio": {
+        "abs_tol": 0.01,
+        "rel_tol": 0.0
+      },
+      "area_err": {
+        "abs_tol": 0.1,
+        "rel_tol": 0.2
+      }
+    }
+  },
+  "scenarios": {
+    "Static": {
+      "mae": 1.1222860305179956,
+      "ghost_ratio": 0.0,
+      "hole_ratio": 0.0,
+      "area_err": 0.2940421052631579
+    },
+    "Dynamic": {
+      "mae": 1.0844566015548873,
+      "ghost_ratio": 0.0,
+      "hole_ratio": 0.0,
+      "area_err": 0.21968201939666604
+    },
+    "DieBonder": {
+      "mae": 0.7484436392873774,
+      "ghost_ratio": 0.0,
+      "hole_ratio": 0.0,
+      "area_err": 0.19361629190517557
+    },
+    "Mixed": {
+      "mae": 1.10631497983095,
+      "ghost_ratio": 0.0,
+      "hole_ratio": 0.0,
+      "area_err": 0.2484375
+    },
+    "Fullplate": {
+      "mae": 1.7801288722901567,
+      "ghost_ratio": 0.0,
+      "hole_ratio": 0.0,
+      "area_err": 0.12523316182264868
+    },
+    "PinArray": {
+      "mae": 3.1130514006615733,
+      "ghost_ratio": 0.05943181818181818,
+      "hole_ratio": 0.00875,
+      "area_err": 0.4252043010752688
+    }
+  }
+}
