@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:PressureMappingSystem.Controls"
         xmlns:vm="clr-namespace:PressureMappingSystem.ViewModels"
-        Title="TRANZX Pressure Mapping System"
+        Title="{Binding L[App.Title]}"
         Width="1500" Height="960"
         MinWidth="1200" MinHeight="700"
         WindowStartupLocation="CenterScreen"
@@ -106,14 +106,14 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <Image Source="Resources/app.ico" Width="28" Height="28" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality"/>
                     <TextBlock Text="TRANZX" FontSize="20" FontWeight="Bold" Foreground="{StaticResource BrandOrange}" VerticalAlignment="Center"/>
-                    <TextBlock Text=" Pressure Mapping System" FontSize="16" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,2"/>
-                    <TextBlock Text=" v1.1" FontSize="10" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
+                    <TextBlock Text="{Binding L[App.Subtitle]}" FontSize="16" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,2"/>
+                    <TextBlock Text="{Binding L[App.Version]}" FontSize="10" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
                 </StackPanel>
 
                 <!-- Language + Device Info -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{Binding DetectedDeviceInfo}" Foreground="{StaticResource AccentGreen}" FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <TextBlock Text="Language:" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <TextBlock Text="{Binding L[UI.Language]}" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
                     <ComboBox Width="120" SelectedIndex="0" SelectionChanged="LanguageCombo_SelectionChanged" FontSize="11">
                         <ComboBoxItem Content="繁體中文"/>
                         <ComboBoxItem Content="English"/>
@@ -128,65 +128,65 @@
             <WrapPanel>
                 <!-- Connection -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
-                    <TextBlock Text="COM:" VerticalAlignment="Center" Margin="4,0"/>
+                    <TextBlock Text="{Binding L[UI.COM]}" VerticalAlignment="Center" Margin="4,0"/>
                     <ComboBox Width="85" ItemsSource="{Binding AvailablePorts}" SelectedItem="{Binding SelectedPort}" Margin="2,0"/>
-                    <Button Content="&#x27F3;" Style="{StaticResource BrandBtn}" Command="{Binding ScanDevicesCommand}" ToolTip="掃描裝置 (Plug&amp;Play)" Padding="6,4"/>
-                    <Button Content="連接" Style="{StaticResource BrandBtn}" Command="{Binding ConnectCommand}"/>
-                    <Button Content="斷開" Style="{StaticResource BrandBtn}" Command="{Binding DisconnectCommand}"/>
+                    <Button Content="&#x27F3;" Style="{StaticResource BrandBtn}" Command="{Binding ScanDevicesCommand}" ToolTip="{Binding L[Toolbar.Refresh]}" Padding="6,4"/>
+                    <Button Content="{Binding L[UI.Connect]}" Style="{StaticResource BrandBtn}" Command="{Binding ConnectCommand}"/>
+                    <Button Content="{Binding L[UI.Disconnect]}" Style="{StaticResource BrandBtn}" Command="{Binding DisconnectCommand}"/>
                 </StackPanel>
                 <Border Width="1" Background="#33FFFFFF" Margin="4,2"/>
 
                 <!-- Measurement Control -->
                 <StackPanel Orientation="Horizontal" Margin="4,0">
-                    <Button Content="▶ 開始量測" Style="{StaticResource BrandBtn}" Command="{Binding StartMeasurementCommand}" Background="{StaticResource AccentGreen}" FontWeight="Bold"/>
-                    <Button Content="■ 結束量測" Style="{StaticResource BrandBtn}" Command="{Binding StopMeasurementCommand}" Background="{StaticResource AccentRed}" FontWeight="Bold"/>
+                    <Button Content="{Binding L[UI.StartMeasure]}" Style="{StaticResource BrandBtn}" Command="{Binding StartMeasurementCommand}" Background="{StaticResource AccentGreen}" FontWeight="Bold"/>
+                    <Button Content="{Binding L[UI.StopMeasure]}" Style="{StaticResource BrandBtn}" Command="{Binding StopMeasurementCommand}" Background="{StaticResource AccentRed}" FontWeight="Bold"/>
                 </StackPanel>
                 <Border Width="1" Background="#33FFFFFF" Margin="4,2"/>
 
                 <!-- Simulation -->
                 <StackPanel Orientation="Horizontal" Margin="4,0">
                     <ComboBox Width="105" SelectedIndex="1" Margin="2,0" SelectionChanged="SimModeCombo_SelectionChanged" FontSize="11">
-                        <ComboBoxItem Content="靜態中心"/>
-                        <ComboBoxItem Content="移動壓力"/>
-                        <ComboBoxItem Content="脈衝壓力"/>
-                        <ComboBoxItem Content="多點壓力"/>
-                        <ComboBoxItem Content="全面壓力"/>
-                        <ComboBoxItem Content="隨機雜訊"/>
+                        <ComboBoxItem Content="{Binding L[SimMode.StaticCenter]}"/>
+                        <ComboBoxItem Content="{Binding L[SimMode.MovingPressure]}"/>
+                        <ComboBoxItem Content="{Binding L[SimMode.PulsingPressure]}"/>
+                        <ComboBoxItem Content="{Binding L[SimMode.MultiPoint]}"/>
+                        <ComboBoxItem Content="{Binding L[SimMode.FullSurface]}"/>
+                        <ComboBoxItem Content="{Binding L[SimMode.RandomNoise]}"/>
                     </ComboBox>
-                    <Button Content="▶ Sim" Style="{StaticResource BrandBtn}" Command="{Binding StartSimulationCommand}"/>
-                    <Button Content="■" Style="{StaticResource BrandBtn}" Command="{Binding StopSimulationCommand}" Padding="8,6"/>
+                    <Button Content="{Binding L[UI.StartSim]}" Style="{StaticResource BrandBtn}" Command="{Binding StartSimulationCommand}"/>
+                    <Button Content="{Binding L[UI.StopSim]}" Style="{StaticResource BrandBtn}" Command="{Binding StopSimulationCommand}" Padding="8,6"/>
                 </StackPanel>
                 <Border Width="1" Background="#33FFFFFF" Margin="4,2"/>
 
                 <!-- Zero + Calibration + Settings -->
                 <StackPanel Orientation="Horizontal" Margin="4,0">
-                    <ToggleButton Content="Zero" Style="{StaticResource ToolBtn}" IsChecked="{Binding IsZeroEnabled}" ToolTip="歸零 — 重新抓取基線"/>
+                    <ToggleButton Content="{Binding L[UI.Zero]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding IsZeroEnabled}" ToolTip="{Binding L[UI.Zero]}"/>
                     <ComboBox Width="130" Margin="4,0,2,0"
                               ItemsSource="{Binding AvailableCalProfiles}"
                               SelectedItem="{Binding SelectedCalProfile}"
                               DisplayMemberPath="Name"
-                              ToolTip="選擇校正設定檔"
+                              ToolTip="{Binding L[Toolbar.CalRecipe]}"
                               FontSize="11"/>
-                    <Button Content="Cal" Style="{StaticResource BrandBtn}" Command="{Binding OpenCalibrationCommand}" ToolTip="開啟校正視窗"/>
-                    <Button Content="&#x2699;" Style="{StaticResource BrandBtn}" Command="{Binding OpenSettingsCommand}" ToolTip="設定 (顯示門檻)" FontSize="16" Padding="6,2"/>
+                    <Button Content="{Binding L[UI.Calibration]}" Style="{StaticResource BrandBtn}" Command="{Binding OpenCalibrationCommand}" ToolTip="{Binding L[UI.Calibration]}"/>
+                    <Button Content="&#x2699;" Style="{StaticResource BrandBtn}" Command="{Binding OpenSettingsCommand}" ToolTip="{Binding L[UI.Settings]}" FontSize="16" Padding="6,2"/>
                 </StackPanel>
                 <Border Width="1" Background="#33FFFFFF" Margin="4,2"/>
 
                 <!-- View Mode -->
                 <StackPanel Orientation="Horizontal" Margin="4,0">
-                    <Button Content="2D Heat" Style="{StaticResource BrandBtn}" Command="{Binding SetHeatmapModeCommand}" Padding="8,6"/>
-                    <Button Content="2D Contour" Style="{StaticResource BrandBtn}" Command="{Binding SetContourModeCommand}" Padding="8,6"/>
-                    <Button Content="3D" Style="{StaticResource BrandBtn}" Click="Show3D_Click" Padding="8,6"/>
-                    <Button Content="Trend" Style="{StaticResource BrandBtn}" Click="ShowTrend_Click" Padding="8,6"/>
-                    <ToggleButton Content="PEAK" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowPeakMap}"/>
-                    <ToggleButton Content="Grid" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowGrid}"/>
-                    <ToggleButton Content="Val" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowValues}"/>
-                    <ToggleButton Content="CoP" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowCoP}"/>
-                    <ToggleButton Content="Lgd" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowLegend}"/>
+                    <Button Content="{Binding L[UI.2DHeat]}" Style="{StaticResource BrandBtn}" Command="{Binding SetHeatmapModeCommand}" Padding="8,6"/>
+                    <Button Content="{Binding L[UI.2DContour]}" Style="{StaticResource BrandBtn}" Command="{Binding SetContourModeCommand}" Padding="8,6"/>
+                    <Button Content="{Binding L[UI.3D]}" Style="{StaticResource BrandBtn}" Click="Show3D_Click" Padding="8,6"/>
+                    <Button Content="{Binding L[UI.Trend]}" Style="{StaticResource BrandBtn}" Click="ShowTrend_Click" Padding="8,6"/>
+                    <ToggleButton Content="{Binding L[UI.Peak]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowPeakMap}"/>
+                    <ToggleButton Content="{Binding L[UI.Grid]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowGrid}"/>
+                    <ToggleButton Content="{Binding L[UI.Values]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowValues}"/>
+                    <ToggleButton Content="{Binding L[UI.CoPLabel]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowCoP}"/>
+                    <ToggleButton Content="{Binding L[UI.Legend]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowLegend}"/>
 
                     <!-- Interpolation Level -->
                     <Border Width="1" Background="#33FFFFFF" Margin="6,2"/>
-                    <TextBlock Text="Interp:" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="4,0,2,0"/>
+                    <TextBlock Text="{Binding L[UI.Interp]}" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="4,0,2,0"/>
                     <ComboBox x:Name="InterpCombo" Width="80" SelectedIndex="0" SelectionChanged="InterpCombo_SelectionChanged" FontSize="11" VerticalAlignment="Center">
                         <ComboBoxItem Content="1×1"/>
                         <ComboBoxItem Content="3×3"/>
@@ -221,7 +221,7 @@
                     </TabControl.Resources>
 
                     <!-- Tab 0: 2D Heatmap -->
-                    <TabItem Header="2D Heatmap / Contour">
+                    <TabItem Header="{Binding L[Tab.Heatmap]}">
                         <controls:HeatmapControl x:Name="HeatmapView"
                             PressureData="{Binding CurrentPressureData}"
                             FrameInfo="{Binding CurrentFrame}"
@@ -237,14 +237,14 @@
                     </TabItem>
 
                     <!-- Tab 1: 3D Surface -->
-                    <TabItem Header="3D Surface">
+                    <TabItem Header="{Binding L[Tab.3DSurface]}">
                         <controls:Surface3DControl x:Name="Surface3DView"
                             PressureData="{Binding CurrentPressureData}"
                             ColorScaleMax="{Binding ColorScaleMaxGrams}"/>
                     </TabItem>
 
                     <!-- Tab 2: Trend Chart -->
-                    <TabItem Header="Trend Chart">
+                    <TabItem Header="{Binding L[Tab.TrendChart]}">
                         <controls:TrendChartControl x:Name="TrendChartView"/>
                     </TabItem>
                 </TabControl>
@@ -259,7 +259,7 @@
 
                         <!-- Recording -->
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,3">
-                            <Button Content="⏺ REC" Style="{StaticResource RecordBtn}" Command="{Binding StartRecordingCommand}" FontWeight="Bold" Padding="10,4"/>
+                            <Button Content="{Binding L[UI.Record]}" Style="{StaticResource RecordBtn}" Command="{Binding StartRecordingCommand}" FontWeight="Bold" Padding="10,4"/>
                             <Button Content="⏹" Style="{StaticResource BrandBtn}" Command="{Binding StopRecordingCommand}" Padding="8,4"/>
                             <Border Width="1" Background="#33FFFFFF" Margin="6,2"/>
                             <TextBlock VerticalAlignment="Center" Margin="4,0" Foreground="{StaticResource TextSecondary}" FontSize="11">
@@ -275,8 +275,8 @@
 
                         <!-- Pause + Capture -->
                         <StackPanel Grid.Row="1" Orientation="Horizontal">
-                            <ToggleButton Content="⏸ 暫停" Style="{StaticResource ToolBtn}" IsChecked="{Binding IsFrozen}" ToolTip="暫停/恢復即時畫面（暫停時可滾輪放大縮小檢視）" Padding="10,4" FontSize="13"/>
-                            <Button Content="📷 擷取" Style="{StaticResource BrandBtn}" Command="{Binding CaptureFrameCommand}" ToolTip="擷取當下畫面 (JPG)" Padding="10,4" FontSize="13"/>
+                            <ToggleButton Content="{Binding L[UI.Freeze]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding IsFrozen}" ToolTip="{Binding L[UI.Freeze]}" Padding="10,4" FontSize="13"/>
+                            <Button Content="{Binding L[UI.Capture]}" Style="{StaticResource BrandBtn}" Command="{Binding CaptureFrameCommand}" ToolTip="{Binding L[UI.Capture]}" Padding="10,4" FontSize="13"/>
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -287,7 +287,7 @@
                 <StackPanel Margin="4">
 
                     <!-- Statistics -->
-                    <GroupBox Header="即時統計 / Statistics">
+                    <GroupBox Header="{Binding L[Panel.Stats]}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -297,19 +297,19 @@
                                 <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
                                 <RowDefinition/><RowDefinition/><RowDefinition/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Peak:" Foreground="{StaticResource TextSecondary}" Margin="2"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding L[Stats.PeakPressure]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
                             <TextBlock Grid.Row="0" Grid.Column="1" Foreground="{StaticResource BrandOrange}" FontWeight="Bold" FontSize="14" Margin="2">
                                 <Run Text="{Binding PeakPressure, StringFormat=F1, Mode=OneWay}"/><Run Text=" g"/>
                             </TextBlock>
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Total:" Foreground="{StaticResource TextSecondary}" Margin="2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding L[Stats.TotalForce]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
                             <TextBlock Grid.Row="1" Grid.Column="1" Margin="2"><Run Text="{Binding TotalForce, StringFormat=F1, Mode=OneWay}"/><Run Text=" g"/></TextBlock>
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Avg:" Foreground="{StaticResource TextSecondary}" Margin="2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding L[Stats.AvgPressure]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
                             <TextBlock Grid.Row="2" Grid.Column="1" Margin="2"><Run Text="{Binding AveragePressure, StringFormat=F1, Mode=OneWay}"/><Run Text=" g"/></TextBlock>
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Active:" Foreground="{StaticResource TextSecondary}" Margin="2"/>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding L[Stats.ActivePoints]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
                             <TextBlock Grid.Row="3" Grid.Column="1" Margin="2"><Run Text="{Binding ActivePoints, Mode=OneWay}"/><Run Text=" / 1600"/></TextBlock>
-                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Area:" Foreground="{StaticResource TextSecondary}" Margin="2"/>
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="{Binding L[Stats.ContactArea]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
                             <TextBlock Grid.Row="4" Grid.Column="1" Margin="2"><Run Text="{Binding ContactArea, StringFormat=F2, Mode=OneWay}"/><Run Text=" mm²"/></TextBlock>
-                            <TextBlock Grid.Row="5" Grid.Column="0" Text="CoP:" Foreground="{StaticResource TextSecondary}" Margin="2"/>
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="{Binding L[Stats.CoP]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
                             <TextBlock Grid.Row="5" Grid.Column="1" Margin="2">
                                 <Run Text="("/><Run Text="{Binding CoPX, StringFormat=F1, Mode=OneWay}"/>
                                 <Run Text=","/><Run Text="{Binding CoPY, StringFormat=F1, Mode=OneWay}"/><Run Text=") mm"/>
@@ -320,7 +320,7 @@
                     </GroupBox>
 
                     <!-- PEAK -->
-                    <GroupBox Header="PEAK 峰值追蹤">
+                    <GroupBox Header="{Binding L[Panel.Peak]}">
                         <StackPanel>
                             <TextBlock Foreground="{StaticResource AccentRed}" FontWeight="Bold" FontSize="16" Margin="2">
                                 <Run Text="{Binding SessionPeakPressure, StringFormat=F1, Mode=OneWay}"/><Run Text=" g"/>
@@ -330,19 +330,19 @@
                                 <Run Text=" Col "/><Run Text="{Binding SessionPeakCol, Mode=OneWay}"/>
                             </TextBlock>
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                <Button Content="Reset" Style="{StaticResource BrandBtn}" Command="{Binding ResetPeakCommand}" Padding="8,4"/>
-                                <ToggleButton Content="Peak Map" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowPeakMap}"/>
+                                <Button Content="{Binding L[Btn.Reset]}" Style="{StaticResource BrandBtn}" Command="{Binding ResetPeakCommand}" Padding="8,4"/>
+                                <ToggleButton Content="{Binding L[Btn.PeakMap]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowPeakMap}"/>
                             </StackPanel>
                         </StackPanel>
                     </GroupBox>
 
                     <!-- ROI Analysis -->
-                    <GroupBox Header="ROI 區域分析">
+                    <GroupBox Header="{Binding L[Panel.ROI]}">
                         <StackPanel>
                             <WrapPanel>
-                                <Button Content="+ Rect" Style="{StaticResource BrandBtn}" Command="{Binding AddRoiRectCommand}" Padding="8,4"/>
-                                <Button Content="+ Ellipse" Style="{StaticResource BrandBtn}" Command="{Binding AddRoiEllipseCommand}" Padding="8,4"/>
-                                <Button Content="Clear" Style="{StaticResource BrandBtn}" Command="{Binding ClearRoiCommand}" Padding="8,4"/>
+                                <Button Content="{Binding L[Btn.Rect]}" Style="{StaticResource BrandBtn}" Command="{Binding AddRoiRectCommand}" Padding="8,4"/>
+                                <Button Content="{Binding L[Btn.Ellipse]}" Style="{StaticResource BrandBtn}" Command="{Binding AddRoiEllipseCommand}" Padding="8,4"/>
+                                <Button Content="{Binding L[Btn.Clear]}" Style="{StaticResource BrandBtn}" Command="{Binding ClearRoiCommand}" Padding="8,4"/>
                             </WrapPanel>
                             <TextBlock Text="{Binding RoiStatsText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}"
                                        FontSize="10" FontFamily="Consolas" TextWrapping="Wrap" Margin="2,4,2,0"/>
@@ -361,18 +361,18 @@
                     </GroupBox>
 
                     <!-- Export -->
-                    <GroupBox Header="匯出 / Export">
+                    <GroupBox Header="{Binding L[Panel.Export]}">
                         <WrapPanel>
-                            <Button Content="CSV" Style="{StaticResource BrandBtn}" Command="{Binding ExportCsvCommand}" Width="60"/>
-                            <Button Content="JPG" Style="{StaticResource BrandBtn}" Command="{Binding ExportJpgCommand}" Width="60"/>
-                            <Button Content="PDF Report" Style="{StaticResource BrandBtn}" Command="{Binding ExportPdfCommand}" Width="90"/>
-                            <Button Content="Cal Report" Style="{StaticResource BrandBtn}" Command="{Binding ExportCalReportCommand}" Width="90"/>
-                            <Button Content="📂 開啟資料夾" Style="{StaticResource BrandBtn}" Command="{Binding OpenExportFolderCommand}" Width="100" Margin="2"/>
+                            <Button Content="{Binding L[Btn.CSV]}" Style="{StaticResource BrandBtn}" Command="{Binding ExportCsvCommand}" Width="60"/>
+                            <Button Content="{Binding L[Btn.JPG]}" Style="{StaticResource BrandBtn}" Command="{Binding ExportJpgCommand}" Width="60"/>
+                            <Button Content="{Binding L[Btn.PDFReport]}" Style="{StaticResource BrandBtn}" Command="{Binding ExportPdfCommand}" Width="90"/>
+                            <Button Content="{Binding L[Btn.CalReport]}" Style="{StaticResource BrandBtn}" Command="{Binding ExportCalReportCommand}" Width="90"/>
+                            <Button Content="{Binding L[Btn.OpenFolder]}" Style="{StaticResource BrandBtn}" Command="{Binding OpenExportFolderCommand}" Width="110" Margin="2"/>
                         </WrapPanel>
                     </GroupBox>
 
                     <!-- Session Management -->
-                    <GroupBox Header="錄製管理">
+                    <GroupBox Header="{Binding L[Panel.Recording]}">
                         <StackPanel>
                             <ListBox Height="90" ItemsSource="{Binding RecordedSessions}" SelectedItem="{Binding SelectedSession}"
                                      Background="{StaticResource SurfaceBg}" Foreground="{StaticResource TextPrimary}" BorderBrush="#33FFFFFF">
@@ -385,15 +385,15 @@
                                 </ListBox.ItemTemplate>
                             </ListBox>
                             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                <Button Content="Save AVI" Style="{StaticResource BrandBtn}" Command="{Binding SaveSessionCommand}" Padding="8,4"/>
-                                <Button Content="🗑 刪除" Style="{StaticResource BrandBtn}" Command="{Binding DeleteSessionCommand}" Padding="8,4"
-                                        Background="#FF993333" ToolTip="刪除選取的未儲存錄影（不影響已儲存檔案）"/>
+                                <Button Content="{Binding L[Btn.SaveAVI]}" Style="{StaticResource BrandBtn}" Command="{Binding SaveSessionCommand}" Padding="8,4"/>
+                                <Button Content="{Binding L[Btn.Delete]}" Style="{StaticResource BrandBtn}" Command="{Binding DeleteSessionCommand}" Padding="8,4"
+                                        Background="#FF993333"/>
                             </StackPanel>
                         </StackPanel>
                     </GroupBox>
 
                     <!-- Sensor Info -->
-                    <GroupBox Header="Sensor Info">
+                    <GroupBox Header="{Binding L[Panel.Sensor]}">
                         <StackPanel>
                             <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="10" TextWrapping="Wrap" LineHeight="16">
                                 <Run FontWeight="Bold">FS-ARR-40X40-S20</Run><LineBreak/>
@@ -401,21 +401,21 @@
                                 <Run>5g~1000g | 0.2KΩ~500KΩ</Run><LineBreak/>
                                 <Run>USB 115200,8N1 | &lt;10μs</Run>
                             </TextBlock>
-                            <Button Content="Diagnostic" Style="{StaticResource BrandBtn}" Command="{Binding ToggleDiagCommand}" Margin="0,4,0,0" Padding="6,3"/>
+                            <Button Content="{Binding L[Btn.Diagnostic]}" Style="{StaticResource BrandBtn}" Command="{Binding ToggleDiagCommand}" Margin="0,4,0,0" Padding="6,3"/>
                         </StackPanel>
                     </GroupBox>
 
                     <!-- Diagnostic Panel (toggleable) -->
-                    <GroupBox Header="Serial Diagnostic" Visibility="{Binding ShowDiagPanel, Converter={StaticResource BoolToVis}}">
+                    <GroupBox Header="{Binding L[Panel.Diagnostic]}" Visibility="{Binding ShowDiagPanel, Converter={StaticResource BoolToVis}}">
                         <StackPanel>
                             <TextBlock Foreground="{StaticResource AccentGreen}" FontSize="11" Margin="2">
-                                <Run Text="Bytes: "/><Run Text="{Binding BytesReceivedCount, Mode=OneWay}"/>
-                                <Run Text=" | Frames: "/><Run Text="{Binding TotalFrames, Mode=OneWay}"/>
+                                <Run Text="{Binding L[Diag.Bytes]}"/><Run Text=" "/><Run Text="{Binding BytesReceivedCount, Mode=OneWay}"/>
+                                <Run Text=" | "/><Run Text="{Binding L[Diag.Frames]}"/><Run Text=" "/><Run Text="{Binding TotalFrames, Mode=OneWay}"/>
                             </TextBlock>
                             <WrapPanel Margin="0,2">
-                                <Button Content="Capture 64KB" Style="{StaticResource BrandBtn}" Command="{Binding CaptureRawCommand}" Padding="6,3"/>
-                                <Button Content="View Hex" Style="{StaticResource BrandBtn}" Command="{Binding ViewRawDataCommand}" Padding="6,3"/>
-                                <Button Content="Save .bin" Style="{StaticResource BrandBtn}" Command="{Binding SaveRawDataCommand}" Padding="6,3"/>
+                                <Button Content="{Binding L[Diag.Capture64K]}" Style="{StaticResource BrandBtn}" Command="{Binding CaptureRawCommand}" Padding="6,3"/>
+                                <Button Content="{Binding L[Diag.ViewHex]}" Style="{StaticResource BrandBtn}" Command="{Binding ViewRawDataCommand}" Padding="6,3"/>
+                                <Button Content="{Binding L[Diag.SaveBin]}" Style="{StaticResource BrandBtn}" Command="{Binding SaveRawDataCommand}" Padding="6,3"/>
                             </WrapPanel>
                             <TextBox Text="{Binding RawSerialData, Mode=OneWay}" IsReadOnly="True"
                                      Background="#FF151520" Foreground="#FF00FF00" FontFamily="Consolas" FontSize="8"
@@ -459,7 +459,7 @@
                     <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center"/>
                 </StackPanel>
                 <TextBlock Grid.Column="2" Foreground="{StaticResource TextSecondary}" FontSize="10" VerticalAlignment="Center">
-                    <Run Text="© 2026 TRANZX Technology | v1.1"/>
+                    <Run Text="{Binding L[Footer.Copyright], Mode=OneWay}"/><Run Text=" | "/><Run Text="{Binding L[App.Version], Mode=OneWay}"/>
                 </TextBlock>
             </Grid>
         </Border>

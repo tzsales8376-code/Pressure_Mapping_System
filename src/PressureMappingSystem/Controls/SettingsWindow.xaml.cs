@@ -18,10 +18,13 @@ public partial class SettingsWindow : Window
     private static double PerPointGramsToKg(double gramsPerPoint)
         => gramsPerPoint * (SensorConfig.Rows * SensorConfig.Cols) / 1000.0;
 
+    public LocalizationService L => LocalizationService.Instance;
+
     public SettingsWindow(MainViewModel vm)
     {
         InitializeComponent();
         _vm = vm;
+        DataContext = this;
 
         // Display Range
         double currentKg = PerPointGramsToKg(_vm.DisplayThreshold);
@@ -95,7 +98,7 @@ public partial class SettingsWindow : Window
     {
         double perPointG = KgToPerPointGrams(totalKg);
         ThresholdValueText.Text = totalKg.ToString("F0");
-        PerPointText.Text = $"(Per point: {perPointG:F1} g)";
+        PerPointText.Text = $"({LocalizationService.T("Settings.PerPoint")} {perPointG:F1} g)";
     }
 
     // ── Noise Floor ──
@@ -126,7 +129,7 @@ public partial class SettingsWindow : Window
         if (percent <= 0)
         {
             NoiseFilterDLevelText.Text = "—";
-            NoiseFilterDescText.Text = "(未啟用)";
+            NoiseFilterDescText.Text = LocalizationService.T("Settings.PurityOff");
         }
         else
         {

@@ -45,7 +45,14 @@ public class DataSimulatorService : IDisposable
     public void Stop()
     {
         _cts?.Cancel();
-        _simulationTask?.Wait(TimeSpan.FromSeconds(2));
+        try
+        {
+            _simulationTask?.Wait(TimeSpan.FromSeconds(2));
+        }
+        catch (AggregateException ex) when (ex.InnerExceptions.All(e => e is TaskCanceledException))
+        {
+            // 預期的取消例外，安全忽略
+        }
         _cts?.Dispose();
         _cts = null;
         _stopwatch.Stop();

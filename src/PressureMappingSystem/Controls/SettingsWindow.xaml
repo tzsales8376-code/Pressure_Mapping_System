@@ -1,7 +1,7 @@
 <Window x:Class="PressureMappingSystem.Controls.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Settings" Width="470" Height="820"
+        Title="{Binding L[Settings.Title]}" Width="470" Height="820"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#FF1E1E2E">
@@ -22,24 +22,25 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="20">
-            <TextBlock Text="Settings" FontSize="18" FontWeight="Bold"
+            <TextBlock Text="{Binding L[Settings.Title]}" FontSize="18" FontWeight="Bold"
                        Foreground="#FFED7D31" Margin="0,0,0,16"/>
 
             <!-- ━━━ 濾波器模式 ━━━ -->
-            <TextBlock Style="{StaticResource SectionHeader}" Text="▶ 濾波器模式 (Filter Mode)"/>
+            <TextBlock Style="{StaticResource SectionHeader}" Text="{Binding L[Settings.FilterMode]}"/>
             <TextBlock Foreground="#FF9898A8" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8"
-                       Text="切換影像處理演算法。Legacy 為原本的空間濾波；TCF 利用時間一致性處理動靜態混合情境。"/>
+                       Text="{Binding L[Settings.FilterModeDesc]}"/>
 
             <ComboBox x:Name="FilterModeCombo" Height="32" FontSize="13" Margin="0,0,0,8"
                       SelectionChanged="FilterModeCombo_SelectionChanged">
-                <ComboBoxItem Content="Legacy — 原演算法 (erosion + inpainting)"/>
-                <ComboBoxItem Content="TCF — 時間一致性濾波 (Temporal-Coherence, 建議)"/>
+                <ComboBoxItem Content="{Binding L[Settings.LegacyLabel]}"/>
+                <ComboBoxItem Content="{Binding L[Settings.TcfLabel]}"/>
             </ComboBox>
 
             <!-- TCF 進階參數（只有選 TCF 時才顯示） -->
             <StackPanel x:Name="TcfParamsPanel" Margin="0,4,0,0" Visibility="Collapsed">
                 <TextBlock Style="{StaticResource LabelStyle}" Margin="0,4,0,6">
-                    <Run Text="響應時間 (Response): "/>
+                    <Run Text="{Binding L[Settings.Response], Mode=OneWay}"/>
+                    <Run Text=" "/>
                     <Run x:Name="TcfResponseText" Text="80" Foreground="#FFED7D31" FontWeight="Bold"/>
                     <Run Text=" ms"/>
                 </TextBlock>
@@ -57,10 +58,11 @@
                     <TextBlock Grid.Column="2" Text="500ms" Foreground="#FF9898A8" FontSize="11" VerticalAlignment="Center" Margin="6,0,0,0"/>
                 </Grid>
                 <TextBlock Foreground="#FF9898A8" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8"
-                           Text="短 → 靈敏但雜訊較多；長 → 平穩但反應慢。&#x0a;60 FPS 下預設 80ms ≈ 5 幀"/>
+                           Text="{Binding L[Settings.ResponseHint]}"/>
 
                 <TextBlock Style="{StaticResource LabelStyle}" Margin="0,0,0,6">
-                    <Run Text="雜訊抑制強度 (Noise Suppression): "/>
+                    <Run Text="{Binding L[Settings.NoiseSup], Mode=OneWay}"/>
+                    <Run Text=" "/>
                     <Run x:Name="TcfNoiseSupText" Text="50" Foreground="#FFED7D31" FontWeight="Bold"/>
                 </TextBlock>
                 <Grid Margin="0,0,0,4">
@@ -77,14 +79,15 @@
                     <TextBlock Grid.Column="2" Text="100" Foreground="#FF9898A8" FontSize="11" VerticalAlignment="Center" Margin="6,0,0,0"/>
                 </Grid>
                 <TextBlock Foreground="#FF9898A8" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"
-                           Text="0 → 最保留（接近原始觀測）&#x0a;50 → 平衡（預設）&#x0a;100 → 最積極抑制（ghost 清乾淨、可能影響真邊緣）"/>
+                           Text="{Binding L[Settings.NoiseSupHint]}"/>
             </StackPanel>
 
             <Border Height="1" Background="#33FFFFFF" Margin="0,4,0,12"/>
 
             <!-- ━━━ Display Range ━━━ -->
             <TextBlock Style="{StaticResource LabelStyle}" Margin="0,0,0,6">
-                <Run Text="Display Range (Total): "/>
+                <Run Text="{Binding L[Settings.DisplayRange], Mode=OneWay}"/>
+                <Run Text=" "/>
                 <Run x:Name="ThresholdValueText" Text="1600" Foreground="#FFED7D31" FontWeight="Bold"/>
                 <Run Text=" kg"/>
             </TextBlock>
@@ -106,13 +109,14 @@
             </Grid>
 
             <TextBlock Foreground="#FF9898A8" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,16"
-                       Text="設定色階顯示範圍的總上限。&#x0a;1600 kg = 單點上限 1000 g（滿量程）&#x0a;500 kg = 單點上限 312.5 g&#x0a;色階圖將根據此設定自動調整刻度。"/>
+                       Text="{Binding L[Settings.DisplayRangeHint]}"/>
 
             <!-- Noise Floor Slider (最低感測門檻) -->
             <Border Height="1" Background="#33FFFFFF" Margin="0,8,0,12"/>
 
             <TextBlock Style="{StaticResource LabelStyle}" Margin="0,0,0,6">
-                <Run Text="最低感測門檻 (Min Threshold): "/>
+                <Run Text="{Binding L[Settings.MinThreshold], Mode=OneWay}"/>
+                <Run Text=" "/>
                 <Run x:Name="NoiseFloorValueText" Text="5" Foreground="#FFED7D31" FontWeight="Bold"/>
                 <Run Text=" g"/>
             </TextBlock>
@@ -132,13 +136,14 @@
             </Grid>
 
             <TextBlock Foreground="#FF9898A8" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,16"
-                       Text="單點低於此值的讀數一律歸零。&#x0a;規格最低 5g，但 1mm 間距會產生機械串擾（約 5~15g）。&#x0a;重力量測建議：15~25g（過濾串擾又不影響精度）"/>
+                       Text="{Binding L[Settings.MinThresholdHint]}"/>
 
             <!-- Signal Purity Slider (訊號純淨度) -->
             <Border Height="1" Background="#33FFFFFF" Margin="0,8,0,12"/>
 
             <TextBlock Style="{StaticResource LabelStyle}" Margin="0,0,0,6">
-                <Run Text="訊號純淨度 (Signal Purity): D"/>
+                <Run Text="{Binding L[Settings.SignalPurity], Mode=OneWay}"/>
+                <Run Text=" D"/>
                 <Run x:Name="NoiseFilterDLevelText" Text="—" Foreground="#FFED7D31" FontWeight="Bold"/>
                 <Run Text="  ["/>
                 <Run x:Name="NoiseFilterValueText" Text="0" Foreground="#FFED7D31" FontWeight="Bold"/>
@@ -162,14 +167,14 @@
             </Grid>
 
             <TextBlock x:Name="PuritySliderHint" Foreground="#FF9898A8" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,16"
-                       Text="兩階段自適應濾波：&#x0a;① D-Level 門檻：過濾全域低壓弱訊號&#x0a;② 邊緣侵蝕：逐層移除受力區外圍的機械串擾&#x0a;建議值：3~5%（精密測壓），最高可調至 50%&#x0a;※ 僅 Legacy 模式有作用。TCF 模式會忽略此設定。"/>
+                       Text="{Binding L[Settings.PurityFullHint]}"/>
 
             <!-- Buttons -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                <Button Content="Reset" Padding="12,6" Margin="4"
+                <Button Content="{Binding L[Settings.Reset]}" Padding="12,6" Margin="4"
                         Background="#FF444444" Foreground="White" BorderThickness="0"
                         Click="Reset_Click"/>
-                <Button Content="Close" Padding="12,6" Margin="4"
+                <Button Content="{Binding L[Settings.Close]}" Padding="12,6" Margin="4"
                         Background="#FF2B5797" Foreground="White" BorderThickness="0"
                         Click="Close_Click"/>
             </StackPanel>

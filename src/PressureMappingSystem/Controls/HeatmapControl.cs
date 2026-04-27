@@ -305,7 +305,7 @@ public class HeatmapControl : SKElement
             IsAntialias = true,
             TextAlign = SKTextAlign.Center
         };
-        canvas.DrawText("Waiting for data...", info.Width / 2f, info.Height / 2f, paint);
+        canvas.DrawText(LocalizationService.T("Heatmap.WaitingData"), info.Width / 2f, info.Height / 2f, paint);
     }
 
     /// <summary>
@@ -825,7 +825,7 @@ public class HeatmapControl : SKElement
             Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
                 SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
         };
-        canvas.DrawText($"ROI Summary ({_roiList.Count})", panelX, panelY - 6, titlePaint);
+        canvas.DrawText($"{LocalizationService.T("Heatmap.ROISummary")} ({_roiList.Count})", panelX, panelY - 6, titlePaint);
 
         float itemY = panelY + 4;
         float itemHeight = 72;
@@ -951,7 +951,7 @@ public class HeatmapControl : SKElement
             Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
                 SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
         };
-        canvas.DrawText("Pressure (gf)", legendX, legendY - 6, unitPaint);
+        canvas.DrawText(LocalizationService.T("Heatmap.PressureUnit"), legendX, legendY - 6, unitPaint);
     }
 
     /// <summary>
@@ -994,7 +994,7 @@ public class HeatmapControl : SKElement
             Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
                 SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
         };
-        canvas.DrawText("Real-time Stats", statsX, statsY + 14, titlePaint);
+        canvas.DrawText(LocalizationService.T("Heatmap.RealTimeStats"), statsX, statsY + 14, titlePaint);
 
         // 標題底線
         using var linePaint = new SKPaint
@@ -1032,14 +1032,14 @@ public class HeatmapControl : SKElement
         float lineSpacing = 54;
 
         // ── Peak ──
-        canvas.DrawText("Peak", statsX, y, labelPaint);
+        canvas.DrawText(LocalizationService.T("Heatmap.Peak"), statsX, y, labelPaint);
         y += 22;
         canvas.DrawText($"{frame.PeakPressureGrams:F0}", statsX, y, valuePaint);
         canvas.DrawText(" gf", statsX + valuePaint.MeasureText($"{frame.PeakPressureGrams:F0}") + 2, y, unitPaint);
         y += lineSpacing - 22;
 
         // ── Total Force (顯示為 kg) ──
-        canvas.DrawText("Total Force", statsX, y, labelPaint);
+        canvas.DrawText(LocalizationService.T("Heatmap.TotalForce"), statsX, y, labelPaint);
         y += 22;
         double totalKg = frame.TotalForceGrams / 1000.0;
         string totalStr = totalKg >= 1 ? $"{totalKg:F2}" : $"{frame.TotalForceGrams:F0}";
@@ -1049,28 +1049,28 @@ public class HeatmapControl : SKElement
         y += lineSpacing - 22;
 
         // ── Contact Area ──
-        canvas.DrawText("Force Area", statsX, y, labelPaint);
+        canvas.DrawText(LocalizationService.T("Heatmap.ForceArea"), statsX, y, labelPaint);
         y += 22;
         canvas.DrawText($"{frame.ContactAreaMm2:F1}", statsX, y, valuePaint);
         canvas.DrawText(" mm²", statsX + valuePaint.MeasureText($"{frame.ContactAreaMm2:F1}") + 2, y, unitPaint);
         y += lineSpacing - 22;
 
         // ── Average ──
-        canvas.DrawText("Average", statsX, y, labelPaint);
+        canvas.DrawText(LocalizationService.T("Heatmap.Average"), statsX, y, labelPaint);
         y += 22;
         canvas.DrawText($"{frame.AveragePressureGrams:F0}", statsX, y, valuePaint);
         canvas.DrawText(" gf", statsX + valuePaint.MeasureText($"{frame.AveragePressureGrams:F0}") + 2, y, unitPaint);
         y += lineSpacing - 22;
 
         // ── Active Points ──
-        canvas.DrawText("Active Points", statsX, y, labelPaint);
+        canvas.DrawText(LocalizationService.T("Heatmap.ActivePoints"), statsX, y, labelPaint);
         y += 22;
         canvas.DrawText($"{frame.ActivePointCount}", statsX, y, valuePaint);
         canvas.DrawText($" / 1600", statsX + valuePaint.MeasureText($"{frame.ActivePointCount}") + 2, y, unitPaint);
         y += lineSpacing - 22;
 
         // ── Center of Pressure ──
-        canvas.DrawText("CoP (mm)", statsX, y, labelPaint);
+        canvas.DrawText(LocalizationService.T("Heatmap.CoPmm"), statsX, y, labelPaint);
         y += 22;
         using var copPaint = new SKPaint
         {
