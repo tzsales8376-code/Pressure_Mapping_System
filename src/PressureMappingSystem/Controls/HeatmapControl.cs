@@ -16,6 +16,15 @@ namespace PressureMappingSystem.Controls;
 /// </summary>
 public class HeatmapControl : SKElement
 {
+    // ── CJK 字型支援（中日韓文字渲染）──
+    // Windows 預裝「微軟正黑體」支援繁中/簡中/日文/韓文
+    // 若系統無此字型則回退至 SKTypeface.Default
+    private static readonly SKTypeface CjkTypeface =
+        SKTypeface.FromFamilyName("Microsoft JhengHei") ?? SKTypeface.Default;
+    private static readonly SKTypeface CjkBoldTypeface =
+        SKTypeface.FromFamilyName("Microsoft JhengHei", SKFontStyleWeight.Bold,
+            SKFontStyleWidth.Normal, SKFontStyleSlant.Upright) ?? CjkTypeface;
+
     // ── Dependency Properties ──
     public static readonly DependencyProperty PressureDataProperty =
         DependencyProperty.Register(nameof(PressureData), typeof(double[,]), typeof(HeatmapControl),
@@ -303,7 +312,8 @@ public class HeatmapControl : SKElement
             Color = new SKColor(180, 180, 180),
             TextSize = 16,
             IsAntialias = true,
-            TextAlign = SKTextAlign.Center
+            TextAlign = SKTextAlign.Center,
+            Typeface = CjkTypeface
         };
         canvas.DrawText(LocalizationService.T("Heatmap.WaitingData"), info.Width / 2f, info.Height / 2f, paint);
     }
@@ -562,8 +572,7 @@ public class HeatmapControl : SKElement
             Color = new SKColor(220, 20, 20),
             TextSize = 11,
             IsAntialias = true,
-            Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
-                SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
+            Typeface = CjkBoldTypeface
         };
         canvas.DrawText("CoP", cx + 14, cy + 4, textPaint);
     }
@@ -766,8 +775,7 @@ public class HeatmapControl : SKElement
                 TextSize = fontSize,
                 IsAntialias = true,
                 TextAlign = SKTextAlign.Center,
-                Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
-                    SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
+                Typeface = CjkBoldTypeface
             };
             float labelTextW = forcePaint.MeasureText(roi.Label);
             float cx = x + w / 2;
@@ -822,8 +830,7 @@ public class HeatmapControl : SKElement
             Color = SKColors.Black,
             TextSize = 13,
             IsAntialias = true,
-            Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
-                SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
+            Typeface = CjkBoldTypeface
         };
         canvas.DrawText($"{LocalizationService.T("Heatmap.ROISummary")} ({_roiList.Count})", panelX, panelY - 6, titlePaint);
 
@@ -872,8 +879,7 @@ public class HeatmapControl : SKElement
                 Color = SKColors.Black,
                 TextSize = 11,
                 IsAntialias = true,
-                Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
-                    SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
+                Typeface = CjkBoldTypeface
             };
             canvas.DrawText($"ROI {i + 1}  {sum / 1000:F1}kg", textX, itemY + 14, headerPaint);
 
@@ -948,8 +954,7 @@ public class HeatmapControl : SKElement
             Color = SKColors.Black,
             TextSize = 10,
             IsAntialias = true,
-            Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
-                SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
+            Typeface = CjkBoldTypeface
         };
         canvas.DrawText(LocalizationService.T("Heatmap.PressureUnit"), legendX, legendY - 6, unitPaint);
     }
@@ -991,8 +996,7 @@ public class HeatmapControl : SKElement
             Color = new SKColor(43, 87, 151),
             TextSize = 14,
             IsAntialias = true,
-            Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
-                SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
+            Typeface = CjkBoldTypeface
         };
         canvas.DrawText(LocalizationService.T("Heatmap.RealTimeStats"), statsX, statsY + 14, titlePaint);
 
@@ -1011,21 +1015,21 @@ public class HeatmapControl : SKElement
             Color = new SKColor(90, 90, 100),
             TextSize = 12,
             IsAntialias = true,
-            Typeface = SKTypeface.FromFamilyName("Arial")
+            Typeface = CjkTypeface
         };
         using var valuePaint = new SKPaint
         {
             Color = new SKColor(20, 20, 20),
             TextSize = 20,
             IsAntialias = true,
-            Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
-                SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
+            Typeface = CjkBoldTypeface
         };
         using var unitPaint = new SKPaint
         {
             Color = new SKColor(110, 110, 120),
             TextSize = 13,
-            IsAntialias = true
+            IsAntialias = true,
+            Typeface = CjkTypeface
         };
 
         float y = statsY + 40;
@@ -1077,8 +1081,7 @@ public class HeatmapControl : SKElement
             Color = new SKColor(220, 20, 20),
             TextSize = 16,
             IsAntialias = true,
-            Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
-                SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
+            Typeface = CjkBoldTypeface
         };
         if (frame.TotalForceGrams > 0)
             canvas.DrawText($"({frame.CenterOfPressureX:F1}, {frame.CenterOfPressureY:F1})", statsX, y, copPaint);
