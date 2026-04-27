@@ -22,8 +22,13 @@ public class LocalizationService : INotifyPropertyChanged
 
     /// <summary>
     /// Indexer — 用於 XAML Binding
+    /// WPF 某些控件預設 TwoWay 綁定，需要 setter 才不會拋例外
     /// </summary>
-    public string this[string key] => Get(key);
+    public string this[string key]
+    {
+        get => Get(key);
+        set { } // 唯讀，空 setter 僅為相容 WPF TwoWay 綁定
+    }
 
     public static ReadOnlyCollection<LanguageInfo> AvailableLanguages { get; } = new(new List<LanguageInfo>
     {
