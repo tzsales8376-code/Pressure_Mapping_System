@@ -4,9 +4,11 @@
         xmlns:hc="clr-namespace:PressureMappingSystem.Controls"
         xmlns:cc="clr-namespace:PressureMappingSystem.Comparison.Controls"
         Title="壓力圖比對 / Snapshot Comparison"
-        Width="1280" Height="800"
+        Width="1400" Height="920"
+        MinWidth="1100" MinHeight="700"
         Background="#FF1E1E2E"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized">
     <Window.Resources>
         <SolidColorBrush x:Key="PanelBg" Color="#FF252536"/>
         <SolidColorBrush x:Key="FieldBg" Color="#FF2D2D3D"/>
@@ -108,7 +110,8 @@
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="快照 A" FontWeight="Bold" FontSize="14"
                                Foreground="{StaticResource BrandOrange}" Margin="8,6"/>
-                    <hc:HeatmapControl Grid.Row="1" x:Name="HeatmapA" Margin="6"/>
+                    <hc:HeatmapControl Grid.Row="1" x:Name="HeatmapA" Margin="6"
+                                       MinHeight="350" VerticalAlignment="Stretch"/>
                     <TextBlock Grid.Row="2" x:Name="InfoTextA" Margin="8,4,8,8"
                                FontFamily="Consolas" FontSize="11"
                                Foreground="{StaticResource TextSecondary}"/>
@@ -125,7 +128,8 @@
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="快照 B" FontWeight="Bold" FontSize="14"
                                Foreground="{StaticResource BrandOrange}" Margin="8,6"/>
-                    <hc:HeatmapControl Grid.Row="1" x:Name="HeatmapB" Margin="6"/>
+                    <hc:HeatmapControl Grid.Row="1" x:Name="HeatmapB" Margin="6"
+                                       MinHeight="350" VerticalAlignment="Stretch"/>
                     <TextBlock Grid.Row="2" x:Name="InfoTextB" Margin="8,4,8,8"
                                FontFamily="Consolas" FontSize="11"
                                Foreground="{StaticResource TextSecondary}"/>
@@ -145,9 +149,11 @@
                                Foreground="{StaticResource BrandOrange}" Margin="8,6"/>
 
                     <!-- 兩個 control 用 Visibility 切換：絕對差用 HeatmapControl 的 jet 配色、有號差用 SignedDiff 的紅藍 -->
-                    <Grid Grid.Row="1" Margin="6">
-                        <hc:HeatmapControl x:Name="HeatmapAbsDiff" Visibility="Visible"/>
-                        <cc:SignedDiffControl x:Name="HeatmapSignedDiff" Visibility="Collapsed"/>
+                    <Grid Grid.Row="1" Margin="6" MinHeight="350">
+                        <hc:HeatmapControl x:Name="HeatmapAbsDiff" Visibility="Visible"
+                                           VerticalAlignment="Stretch"/>
+                        <cc:SignedDiffControl x:Name="HeatmapSignedDiff" Visibility="Collapsed"
+                                             VerticalAlignment="Stretch"/>
                     </Grid>
 
                     <TextBlock Grid.Row="2" x:Name="DiffLegend" Margin="8,4,8,8"
