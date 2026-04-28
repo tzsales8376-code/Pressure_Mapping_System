@@ -1,0 +1,219 @@
+<Window x:Class="PressureMappingSystem.Comparison.ComparisonWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hc="clr-namespace:PressureMappingSystem.Controls"
+        xmlns:cc="clr-namespace:PressureMappingSystem.Comparison.Controls"
+        Title="壓力圖比對 / Snapshot Comparison"
+        Width="1280" Height="800"
+        Background="#FF1E1E2E"
+        WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <SolidColorBrush x:Key="PanelBg" Color="#FF252536"/>
+        <SolidColorBrush x:Key="FieldBg" Color="#FF2D2D3D"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#FFE0E0E8"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#FF9898A8"/>
+        <SolidColorBrush x:Key="BrandOrange" Color="#FFED7D31"/>
+        <SolidColorBrush x:Key="BrandBlue" Color="#FF2B5797"/>
+        <SolidColorBrush x:Key="AccentGreen" Color="#FF4CAF50"/>
+        <SolidColorBrush x:Key="AccentRed" Color="#FFE53935"/>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Foreground" Value="{StaticResource BrandOrange}"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Padding" Value="6"/>
+        </Style>
+        <Style x:Key="Btn" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource BrandBlue}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- header -->
+            <RowDefinition Height="*"/>     <!-- 三張圖 -->
+            <RowDefinition Height="Auto"/>  <!-- metrics -->
+            <RowDefinition Height="Auto"/>  <!-- bottom buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- Header: 模式 + 容差 -->
+        <Border Grid.Row="0" Background="{StaticResource PanelBg}" Padding="12,8" CornerRadius="3" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="比對模式：" FontWeight="Bold"/>
+                    <ComboBox x:Name="ModeCombo" Width="220" Margin="6,0,0,0"
+                              SelectionChanged="ModeCombo_SelectionChanged">
+                        <ComboBoxItem Content="樣品-樣品（重複性 / Sample-to-Sample）"/>
+                        <ComboBoxItem Content="基準-待測（OK/NG 判定 / Reference vs DUT）"/>
+                        <ComboBoxItem Content="前-後（變化方向 / Before-After）"/>
+                    </ComboBox>
+                </StackPanel>
+
+                <!-- 容差設定（只 Reference vs DUT 顯示） -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                            Margin="20,0,0,0" x:Name="TolerancePanel" Visibility="Collapsed">
+                    <TextBlock Text="容差："/>
+                    <TextBox x:Name="ToleranceGramsBox" Width="50" Margin="6,0,3,0"
+                             Background="{StaticResource FieldBg}" Foreground="White" Text="5.0"
+                             VerticalContentAlignment="Center" Padding="4,2"
+                             LostFocus="Tolerance_LostFocus"/>
+                    <TextBlock Text="g"/>
+                    <TextBlock Text="或" Margin="8,0"/>
+                    <TextBox x:Name="TolerancePercentBox" Width="50" Margin="3,0"
+                             Background="{StaticResource FieldBg}" Foreground="White" Text="5.0"
+                             VerticalContentAlignment="Center" Padding="4,2"
+                             LostFocus="Tolerance_LostFocus"/>
+                    <TextBlock Text="%（取較大者）"/>
+                </StackPanel>
+
+                <!-- OK/NG 大字（只 Reference vs DUT 顯示） -->
+                <Border Grid.Column="2" x:Name="OkNgBox" Visibility="Collapsed"
+                        Background="{StaticResource AccentGreen}" Padding="20,4"
+                        CornerRadius="4">
+                    <TextBlock x:Name="OkNgText" Text="PASS" FontSize="22" FontWeight="Bold"
+                               Foreground="White" VerticalAlignment="Center"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- 三張熱力圖 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- A -->
+            <Border Grid.Column="0" Background="{StaticResource PanelBg}" CornerRadius="3" Margin="0,0,4,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="快照 A" FontWeight="Bold" FontSize="14"
+                               Foreground="{StaticResource BrandOrange}" Margin="8,6"/>
+                    <hc:HeatmapControl Grid.Row="1" x:Name="HeatmapA" Margin="6"/>
+                    <TextBlock Grid.Row="2" x:Name="InfoTextA" Margin="8,4,8,8"
+                               FontFamily="Consolas" FontSize="11"
+                               Foreground="{StaticResource TextSecondary}"/>
+                </Grid>
+            </Border>
+
+            <!-- B -->
+            <Border Grid.Column="1" Background="{StaticResource PanelBg}" CornerRadius="3" Margin="2,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="快照 B" FontWeight="Bold" FontSize="14"
+                               Foreground="{StaticResource BrandOrange}" Margin="8,6"/>
+                    <hc:HeatmapControl Grid.Row="1" x:Name="HeatmapB" Margin="6"/>
+                    <TextBlock Grid.Row="2" x:Name="InfoTextB" Margin="8,4,8,8"
+                               FontFamily="Consolas" FontSize="11"
+                               Foreground="{StaticResource TextSecondary}"/>
+                </Grid>
+            </Border>
+
+            <!-- Diff -->
+            <Border Grid.Column="2" Background="{StaticResource PanelBg}" CornerRadius="3" Margin="4,0,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" x:Name="DiffTitle" Text="差值（A − B）"
+                               FontWeight="Bold" FontSize="14"
+                               Foreground="{StaticResource BrandOrange}" Margin="8,6"/>
+
+                    <!-- 兩個 control 用 Visibility 切換：絕對差用 HeatmapControl 的 jet 配色、有號差用 SignedDiff 的紅藍 -->
+                    <Grid Grid.Row="1" Margin="6">
+                        <hc:HeatmapControl x:Name="HeatmapAbsDiff" Visibility="Visible"/>
+                        <cc:SignedDiffControl x:Name="HeatmapSignedDiff" Visibility="Collapsed"/>
+                    </Grid>
+
+                    <TextBlock Grid.Row="2" x:Name="DiffLegend" Margin="8,4,8,8"
+                               FontFamily="Consolas" FontSize="11"
+                               Foreground="{StaticResource TextSecondary}"
+                               Text="顏色：藍=低、紅=高（絕對差絕對值）"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Metrics 區塊 -->
+        <Border Grid.Row="2" Background="{StaticResource PanelBg}" CornerRadius="3"
+                Margin="0,8,0,0" Padding="12,8">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel Orientation="Horizontal">
+                    <!-- 通用指標 -->
+                    <StackPanel Margin="0,0,30,0">
+                        <TextBlock Text="整體誤差" FontWeight="Bold" Foreground="{StaticResource BrandOrange}"/>
+                        <TextBlock x:Name="MetricMaeText" FontFamily="Consolas" Margin="0,2,0,0"/>
+                        <TextBlock x:Name="MetricRmseText" FontFamily="Consolas"/>
+                        <TextBlock x:Name="MetricMaxAbsText" FontFamily="Consolas"/>
+                        <TextBlock x:Name="MetricPearsonText" FontFamily="Consolas"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,30,0">
+                        <TextBlock Text="摘要差" FontWeight="Bold" Foreground="{StaticResource BrandOrange}"/>
+                        <TextBlock x:Name="MetricPeakText" FontFamily="Consolas" Margin="0,2,0,0"/>
+                        <TextBlock x:Name="MetricTotalText" FontFamily="Consolas"/>
+                        <TextBlock x:Name="MetricActiveText" FontFamily="Consolas"/>
+                        <TextBlock x:Name="MetricCopText" FontFamily="Consolas"/>
+                    </StackPanel>
+
+                    <!-- Reference-DUT 專用 -->
+                    <StackPanel Margin="0,0,30,0" x:Name="OkNgMetricPanel" Visibility="Collapsed">
+                        <TextBlock Text="OK/NG 判定" FontWeight="Bold" Foreground="{StaticResource BrandOrange}"/>
+                        <TextBlock x:Name="MetricOutOfTolText" FontFamily="Consolas" Margin="0,2,0,0"/>
+                        <TextBlock x:Name="MetricToleranceText" FontFamily="Consolas"/>
+                    </StackPanel>
+
+                    <!-- Before-After 專用 -->
+                    <StackPanel Margin="0,0,30,0" x:Name="ChangeMetricPanel" Visibility="Collapsed">
+                        <TextBlock Text="變化方向" FontWeight="Bold" Foreground="{StaticResource BrandOrange}"/>
+                        <TextBlock x:Name="MetricIncreaseText" FontFamily="Consolas" Margin="0,2,0,0"/>
+                        <TextBlock x:Name="MetricDecreaseText" FontFamily="Consolas"/>
+                        <TextBlock x:Name="MetricNetText" FontFamily="Consolas"/>
+                    </StackPanel>
+
+                    <!-- Warnings -->
+                    <StackPanel x:Name="WarningPanel" Visibility="Collapsed">
+                        <TextBlock Text="提醒" FontWeight="Bold" Foreground="{StaticResource AccentRed}"/>
+                        <ItemsControl x:Name="WarningList" Margin="0,2,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource AccentRed}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- 底部按鈕 -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+            <Button Content="📋 複製指標到剪貼簿" Style="{StaticResource Btn}" Click="CopyMetrics_Click"/>
+            <Button Content="關閉" Style="{StaticResource Btn}" Click="Close_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

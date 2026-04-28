@@ -360,6 +360,68 @@
                         </StackPanel>
                     </GroupBox>
 
+                    <!-- Comparison -->
+                    <GroupBox Header="比對分析 / Comparison">
+                        <StackPanel>
+                            <!-- 模式切換 -->
+                            <ComboBox SelectedIndex="{Binding ComparisonModeIndex}"
+                                      Background="{StaticResource SurfaceBg}" Foreground="White"
+                                      Margin="2,2,2,4">
+                                <ComboBoxItem Content="樣品-樣品"/>
+                                <ComboBoxItem Content="基準-待測 (OK/NG)"/>
+                                <ComboBoxItem Content="前-後 (變化)"/>
+                            </ComboBox>
+
+                            <!-- A / B 摘要 -->
+                            <Grid Margin="0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" BorderBrush="#FFED7D31" BorderThickness="1"
+                                        Margin="2,0,1,0" Padding="4,3" CornerRadius="2">
+                                    <StackPanel>
+                                        <TextBlock Text="A" FontWeight="Bold" Foreground="{StaticResource BrandOrange}" FontSize="11"/>
+                                        <TextBlock Text="{Binding SnapshotASummary, Mode=OneWay}"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   FontSize="9" FontFamily="Consolas" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" BorderBrush="#FFED7D31" BorderThickness="1"
+                                        Margin="1,0,2,0" Padding="4,3" CornerRadius="2">
+                                    <StackPanel>
+                                        <TextBlock Text="B" FontWeight="Bold" Foreground="{StaticResource BrandOrange}" FontSize="11"/>
+                                        <TextBlock Text="{Binding SnapshotBSummary, Mode=OneWay}"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   FontSize="9" FontFamily="Consolas" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <!-- 設為 A / B 按鈕 -->
+                            <TextBlock Text="先按工具列「Freeze」凍結畫面，再選擇:"
+                                       Foreground="{StaticResource TextSecondary}" FontSize="10"
+                                       Margin="2,4,2,2"/>
+                            <WrapPanel>
+                                <Button Content="設為 A" Style="{StaticResource BrandBtn}"
+                                        Command="{Binding SetSnapshotACommand}" Padding="10,4"/>
+                                <Button Content="設為 B" Style="{StaticResource BrandBtn}"
+                                        Command="{Binding SetSnapshotBCommand}" Padding="10,4"/>
+                                <Button Content="清除" Style="{StaticResource BrandBtn}"
+                                        Command="{Binding ClearSnapshotsCommand}" Padding="10,4"/>
+                            </WrapPanel>
+
+                            <!-- 展開比對視窗 -->
+                            <Button Content="📊 展開比對視窗"
+                                    Style="{StaticResource BrandBtn}"
+                                    Command="{Binding OpenComparisonWindowCommand}"
+                                    IsEnabled="{Binding HasBothSnapshots}"
+                                    HorizontalAlignment="Stretch"
+                                    Margin="2,6,2,2" Padding="10,5"
+                                    FontWeight="Bold"/>
+                        </StackPanel>
+                    </GroupBox>
+
                     <!-- Export -->
                     <GroupBox Header="{Binding L[Panel.Export]}">
                         <WrapPanel>
@@ -395,12 +457,7 @@
                     <!-- Sensor Info -->
                     <GroupBox Header="{Binding L[Panel.Sensor]}">
                         <StackPanel>
-                            <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="10" TextWrapping="Wrap" LineHeight="16">
-                                <Run FontWeight="Bold">FS-ARR-40X40-S20</Run><LineBreak/>
-                                <Run>40×40 (1600pts) | 0.5mm pitch</Run><LineBreak/>
-                                <Run>5g~1000g | 0.2KΩ~500KΩ</Run><LineBreak/>
-                                <Run>USB 115200,8N1 | &lt;10μs</Run>
-                            </TextBlock>
+                            <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="10" TextWrapping="Wrap" LineHeight="16"><Run Language="zh-tw" Text="PMS-1600"/><LineBreak/><Run Text="40×40 (1600pts) | 0.5mm pitch"/><LineBreak/><Run Text="5g~1000g | 0.2KΩ~500KΩ"/><LineBreak/><Run Text="USB 115200,8N1 | &lt;10μs"/></TextBlock>
                             <Button Content="{Binding L[Btn.Diagnostic]}" Style="{StaticResource BrandBtn}" Command="{Binding ToggleDiagCommand}" Margin="0,4,0,0" Padding="6,3"/>
                         </StackPanel>
                     </GroupBox>
@@ -465,3 +522,4 @@
         </Border>
     </Grid>
 </Window>
+                                                                                                                                                                   

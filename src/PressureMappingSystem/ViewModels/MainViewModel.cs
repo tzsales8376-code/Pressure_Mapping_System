@@ -5,6 +5,8 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using PressureMappingSystem.Comparison;
+using PressureMappingSystem.Comparison.Models;
 using PressureMappingSystem.Controls;
 using PressureMappingSystem.Models;
 using PressureMappingSystem.Services;
@@ -91,6 +93,11 @@ public class MainViewModel : ViewModelBase, IDisposable
     // Measurement flow control
     private bool _isMeasuring;
     private bool _isFrozen;  // 凍結畫面：暫停即時更新但不中斷資料接收
+
+    // ── Snapshot Comparison State ──
+    private CapturedSnapshot? _snapshotA;
+    private CapturedSnapshot? _snapshotB;
+    private ComparisonMode _comparisonMode = ComparisonMode.SampleToSample;
 
     // Zero / Tare + Baseline + Threshold
     private bool _isZeroEnabled;
@@ -373,6 +380,57 @@ public class MainViewModel : ViewModelBase, IDisposable
     public ObservableCollection<RoiRegion> RoiRegions { get; } = new();
     public ObservableCollection<CustomCalibrationProfile> AvailableCalProfiles { get; } = new();
 
+    // ── Snapshot Comparison Properties ──
+    public CapturedSnapshot? SnapshotA
+    {
+        get => _snapshotA;
+        set
+        {
+            if (SetProperty(ref _snapshotA, value))
+            {
+                OnPropertyChanged(nameof(SnapshotASummary));
+                OnPropertyChanged(nameof(HasBothSnapshots));
+            }
+        }
+    }
+
+    public CapturedSnapshot? SnapshotB
+    {
+        get => _snapshotB;
+        set
+        {
+            if (SetProperty(ref _snapshotB, value))
+            {
+                OnPropertyChanged(nameof(SnapshotBSummary));
+                OnPropertyChanged(nameof(HasBothSnapshots));
+            }
+        }
+    }
+
+    public string SnapshotASummary => _snapshotA == null
+        ? "(尚未擷取)"
+        : $"Peak {_snapshotA.Peak:F0}g  Total {_snapshotA.TotalForce / 1000:F2}kg\n@ {_snapshotA.CapturedAt:HH:mm:ss}";
+
+    public string SnapshotBSummary => _snapshotB == null
+        ? "(尚未擷取)"
+        : $"Peak {_snapshotB.Peak:F0}g  Total {_snapshotB.TotalForce / 1000:F2}kg\n@ {_snapshotB.CapturedAt:HH:mm:ss}";
+
+    public bool HasBothSnapshots => _snapshotA != null && _snapshotB != null;
+
+    public int ComparisonModeIndex
+    {
+        get => (int)_comparisonMode;
+        set
+        {
+            var mode = (ComparisonMode)value;
+            if (mode != _comparisonMode)
+            {
+                _comparisonMode = mode;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     // ── Commands ──
     public ICommand ConnectCommand { get; }
     public ICommand DisconnectCommand { get; }
@@ -415,6 +473,12 @@ public class MainViewModel : ViewModelBase, IDisposable
     public ICommand CaptureRawCommand { get; }
     public ICommand FreezeCommand { get; }
     public ICommand CaptureFrameCommand { get; }
+
+    // ── Comparison Commands ──
+    public ICommand SetSnapshotACommand { get; }
+    public ICommand SetSnapshotBCommand { get; }
+    public ICommand ClearSnapshotsCommand { get; }
+    public ICommand OpenComparisonWindowCommand { get; }
 
     // Trend chart reference (set from code-behind)
     public TrendChartControl? TrendChart { get; set; }
@@ -548,6 +612,12 @@ public class MainViewModel : ViewModelBase, IDisposable
         OpenSettingsCommand = new RelayCommand(DoOpenSettings);
         FreezeCommand = new RelayCommand(() => IsFrozen = !IsFrozen);
         CaptureFrameCommand = new RelayCommand(DoCaptureFrame);
+
+        // ── Comparison Command Bindings ──
+        SetSnapshotACommand = new RelayCommand(() => DoSetSnapshot("A"), () => CurrentFrame != null);
+        SetSnapshotBCommand = new RelayCommand(() => DoSetSnapshot("B"), () => CurrentFrame != null);
+        ClearSnapshotsCommand = new RelayCommand(DoClearSnapshots);
+        OpenComparisonWindowCommand = new RelayCommand(DoOpenComparisonWindow, () => HasBothSnapshots);
 
         // Load recipes
         foreach (var r in _calibrationService.Recipes)
@@ -923,6 +993,55 @@ public class MainViewModel : ViewModelBase, IDisposable
         catch (Exception ex)
         {
             StatusText = $"擷取失敗: {ex.Message}";
+        }
+    }
+
+    // ── Snapshot Comparison Handlers ──
+    private void DoSetSnapshot(string label)
+    {
+        if (CurrentFrame == null)
+        {
+            StatusText = "沒有可擷取的幀資料";
+            return;
+        }
+        var snapshot = CapturedSnapshot.FromFrame(CurrentFrame, label, SensorConfig.SensingAreaMm);
+        if (label == "A")
+        {
+            SnapshotA = snapshot;
+            StatusText = $"已設為快照 A：Peak {snapshot.Peak:F1}g, Total {snapshot.TotalForce / 1000:F2}kg";
+        }
+        else
+        {
+            SnapshotB = snapshot;
+            StatusText = $"已設為快照 B：Peak {snapshot.Peak:F1}g, Total {snapshot.TotalForce / 1000:F2}kg";
+        }
+    }
+
+    private void DoClearSnapshots()
+    {
+        SnapshotA = null;
+        SnapshotB = null;
+        StatusText = "已清除快照 A 與 B";
+    }
+
+    private void DoOpenComparisonWindow()
+    {
+        if (SnapshotA == null || SnapshotB == null)
+        {
+            StatusText = "需要 A 與 B 兩張快照才能比對";
+            return;
+        }
+        try
+        {
+            var window = new ComparisonWindow(SnapshotA, SnapshotB, _comparisonMode)
+            {
+                Owner = Application.Current.MainWindow
+            };
+            window.Show();
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"開啟比對視窗失敗：{ex.Message}";
         }
     }
 
