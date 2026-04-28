@@ -24,17 +24,25 @@ public partial class ComparisonWindow : Window
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "TRANZX", "PressureData");
 
+        // 統一色階：取 A、B 兩者的最大值，確保視覺一致
+        double scaleMax = Math.Max(a.Peak, b.Peak);
+        if (scaleMax < 1) scaleMax = SensorConfig.MaxForceGrams;
+
         // 顯示 A、B 熱力圖（reuse 主程式的 HeatmapControl）
         HeatmapA.PressureData = a.PressureGrams;
+        HeatmapA.ColorScaleMax = scaleMax;
         HeatmapA.ShowValues = false;
         HeatmapA.ShowGrid = true;
         HeatmapA.ShowCoP = true;
+        HeatmapA.ShowLegend = false;   // 比對視窗不需要獨立色階，節省空間放大熱力圖
         InfoTextA.Text = FormatSnapshotInfo(a);
 
         HeatmapB.PressureData = b.PressureGrams;
+        HeatmapB.ColorScaleMax = scaleMax;
         HeatmapB.ShowValues = false;
         HeatmapB.ShowGrid = true;
         HeatmapB.ShowCoP = true;
+        HeatmapB.ShowLegend = false;
         InfoTextB.Text = FormatSnapshotInfo(b);
 
         ModeCombo.SelectedIndex = (int)initialMode;
@@ -98,9 +106,11 @@ public partial class ComparisonWindow : Window
             HeatmapAbsDiff.Visibility = Visibility.Visible;
             HeatmapSignedDiff.Visibility = Visibility.Collapsed;
             HeatmapAbsDiff.PressureData = _result.AbsDiff;
+            HeatmapAbsDiff.ColorScaleMax = _result.MaxAbsDiff > 0 ? _result.MaxAbsDiff : 1.0;
             HeatmapAbsDiff.ShowGrid = true;
             HeatmapAbsDiff.ShowCoP = false;
             HeatmapAbsDiff.ShowValues = false;
+            HeatmapAbsDiff.ShowLegend = false;
             DiffTitle.Text = "絕對差 |A − B|";
             DiffLegend.Text = $"色階：藍=低差異、紅=高差異（max {_result.MaxAbsDiff:F1} g）";
         }
