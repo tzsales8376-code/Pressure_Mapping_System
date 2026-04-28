@@ -218,7 +218,7 @@
 
         <!-- 底部按鈕 -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-            <Button Content="📋 複製指標到剪貼簿" Style="{StaticResource Btn}" Click="CopyMetrics_Click"/>
+            <Button Content="💾 匯出比對報告" Style="{StaticResource Btn}" Click="SaveReport_Click"/>
             <Button Content="關閉" Style="{StaticResource Btn}" Click="Close_Click"/>
         </StackPanel>
     </Grid>

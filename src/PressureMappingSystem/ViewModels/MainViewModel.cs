@@ -1033,7 +1033,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         }
         try
         {
-            var window = new ComparisonWindow(SnapshotA, SnapshotB, _comparisonMode)
+            var window = new ComparisonWindow(SnapshotA, SnapshotB, _comparisonMode, _exportFolder)
             {
                 Owner = Application.Current.MainWindow
             };

@@ -11,14 +11,18 @@ public partial class ComparisonWindow : Window
 {
     private readonly CapturedSnapshot _a;
     private readonly CapturedSnapshot _b;
+    private readonly string _exportFolder;
     private ComparisonResult? _result;
     private bool _initializing = true;
 
-    public ComparisonWindow(CapturedSnapshot a, CapturedSnapshot b, ComparisonMode initialMode = ComparisonMode.SampleToSample)
+    public ComparisonWindow(CapturedSnapshot a, CapturedSnapshot b, ComparisonMode initialMode = ComparisonMode.SampleToSample, string? exportFolder = null)
     {
         InitializeComponent();
         _a = a ?? throw new ArgumentNullException(nameof(a));
         _b = b ?? throw new ArgumentNullException(nameof(b));
+        _exportFolder = exportFolder ?? System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "TRANZX", "PressureData");
 
         // 顯示 A、B 熱力圖（reuse 主程式的 HeatmapControl）
         HeatmapA.PressureData = a.PressureGrams;
@@ -153,9 +157,9 @@ public partial class ComparisonWindow : Window
         }
     }
 
-    private void CopyMetrics_Click(object sender, RoutedEventArgs e)
+    private string BuildReportText()
     {
-        if (_result == null) return;
+        if (_result == null) return string.Empty;
         var sb = new StringBuilder();
         sb.AppendLine($"Pressure Snapshot Comparison Report");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
@@ -201,15 +205,25 @@ public partial class ComparisonWindow : Window
             sb.AppendLine("[Warnings]");
             foreach (var w in _result.Warnings) sb.AppendLine($"  - {w}");
         }
+        return sb.ToString();
+    }
 
+    private void SaveReport_Click(object sender, RoutedEventArgs e)
+    {
+        if (_result == null) return;
         try
         {
-            Clipboard.SetText(sb.ToString());
-            MessageBox.Show("已複製指標到剪貼簿。", "完成");
+            System.IO.Directory.CreateDirectory(_exportFolder);
+            string filename = $"{DateTime.Now:yyyyMMdd_HHmmss}_Comparison.txt";
+            string fullPath = System.IO.Path.Combine(_exportFolder, filename);
+            System.IO.File.WriteAllText(fullPath, BuildReportText(), Encoding.UTF8);
+            MessageBox.Show($"比對報告已儲存至:\n{fullPath}", "匯出成功",
+                MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"複製失敗：{ex.Message}", "錯誤");
+            MessageBox.Show($"儲存失敗：{ex.Message}", "錯誤",
+                MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
