@@ -367,6 +367,18 @@
                             <ComboBox SelectedIndex="{Binding ComparisonModeIndex}"
                                       Background="{StaticResource SurfaceBg}" Foreground="White"
                                       Margin="2,2,2,4">
+                                <ComboBox.Resources>
+                                    <Style TargetType="ComboBoxItem">
+                                        <Setter Property="Background" Value="#FF2D2D40"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsHighlighted" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource BrandOrange}"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ComboBox.Resources>
                                 <ComboBoxItem Content="樣品-樣品"/>
                                 <ComboBoxItem Content="基準-待測 (OK/NG)"/>
                                 <ComboBoxItem Content="前-後 (變化)"/>
