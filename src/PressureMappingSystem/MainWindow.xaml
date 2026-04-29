@@ -30,7 +30,7 @@
             <Setter Property="Margin" Value="2"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -43,6 +43,37 @@
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="border" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- IconBtn: 圖示按鈕的特化樣式（Padding 較小、適合放 18x18 SVG）-->
+        <Style x:Key="IconBtn" TargetType="Button" BasedOn="{StaticResource BrandBtn}">
+            <Setter Property="Padding" Value="7,5"/>
+            <Setter Property="MinWidth" Value="38"/>
+            <Setter Property="MinHeight" Value="32"/>
+        </Style>
+        <Style x:Key="IconToggleBtn" TargetType="ToggleButton">
+            <Setter Property="Background" Value="{StaticResource SurfaceBg}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Padding" Value="7,5"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#44FFFFFF"/>
+            <Setter Property="MinWidth" Value="38"/>
+            <Setter Property="MinHeight" Value="32"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource BrandOrange}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -83,7 +114,7 @@
         </Style>
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="13"/>
         </Style>
     </Window.Resources>
 
@@ -130,7 +161,9 @@
                 <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
                     <TextBlock Text="{Binding L[UI.COM]}" VerticalAlignment="Center" Margin="4,0"/>
                     <ComboBox Width="85" ItemsSource="{Binding AvailablePorts}" SelectedItem="{Binding SelectedPort}" Margin="2,0"/>
-                    <Button Content="&#x27F3;" Style="{StaticResource BrandBtn}" Command="{Binding ScanDevicesCommand}" ToolTip="{Binding L[Toolbar.Refresh]}" Padding="6,4"/>
+                    <Button Content="&#x27F3;" FontSize="14" Style="{StaticResource IconBtn}"
+                            Command="{Binding ScanDevicesCommand}"
+                            ToolTip="{Binding L[Toolbar.Refresh]}"/>
                     <Button Content="{Binding L[UI.Connect]}" Style="{StaticResource BrandBtn}" Command="{Binding ConnectCommand}"/>
                     <Button Content="{Binding L[UI.Disconnect]}" Style="{StaticResource BrandBtn}" Command="{Binding DisconnectCommand}"/>
                 </StackPanel>
@@ -145,7 +178,7 @@
 
                 <!-- Simulation -->
                 <StackPanel Orientation="Horizontal" Margin="4,0">
-                    <ComboBox Width="105" SelectedIndex="1" Margin="2,0" SelectionChanged="SimModeCombo_SelectionChanged" FontSize="11">
+                    <ComboBox Width="105" SelectedIndex="1" Margin="2,0" SelectionChanged="SimModeCombo_SelectionChanged" FontSize="12">
                         <ComboBoxItem Content="{Binding L[SimMode.StaticCenter]}"/>
                         <ComboBoxItem Content="{Binding L[SimMode.MovingPressure]}"/>
                         <ComboBoxItem Content="{Binding L[SimMode.PulsingPressure]}"/>
@@ -153,41 +186,85 @@
                         <ComboBoxItem Content="{Binding L[SimMode.FullSurface]}"/>
                         <ComboBoxItem Content="{Binding L[SimMode.RandomNoise]}"/>
                     </ComboBox>
-                    <Button Content="{Binding L[UI.StartSim]}" Style="{StaticResource BrandBtn}" Command="{Binding StartSimulationCommand}"/>
-                    <Button Content="{Binding L[UI.StopSim]}" Style="{StaticResource BrandBtn}" Command="{Binding StopSimulationCommand}" Padding="8,6"/>
+                    <Button Content="&#x25B6;" FontSize="14" Style="{StaticResource IconBtn}"
+                            Command="{Binding StartSimulationCommand}"
+                            ToolTip="{Binding L[UI.StartSim]}"/>
+                    <Button Content="&#x25A0;" FontSize="14" Style="{StaticResource IconBtn}"
+                            Command="{Binding StopSimulationCommand}"
+                            ToolTip="{Binding L[UI.StopSim]}"/>
                 </StackPanel>
                 <Border Width="1" Background="#33FFFFFF" Margin="4,2"/>
 
                 <!-- Zero + Calibration + Settings -->
                 <StackPanel Orientation="Horizontal" Margin="4,0">
-                    <ToggleButton Content="{Binding L[UI.Zero]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding IsZeroEnabled}" ToolTip="{Binding L[UI.Zero]}"/>
+                    <ToggleButton Content="&#x2300;" FontSize="16"
+                                  Style="{StaticResource IconToggleBtn}"
+                                  IsChecked="{Binding IsZeroEnabled}"
+                                  ToolTip="{Binding L[UI.Zero]}"/>
                     <ComboBox Width="130" Margin="4,0,2,0"
                               ItemsSource="{Binding AvailableCalProfiles}"
                               SelectedItem="{Binding SelectedCalProfile}"
                               DisplayMemberPath="Name"
                               ToolTip="{Binding L[Toolbar.CalRecipe]}"
-                              FontSize="11"/>
-                    <Button Content="{Binding L[UI.Calibration]}" Style="{StaticResource BrandBtn}" Command="{Binding OpenCalibrationCommand}" ToolTip="{Binding L[UI.Calibration]}"/>
-                    <Button Content="&#x2699;" Style="{StaticResource BrandBtn}" Command="{Binding OpenSettingsCommand}" ToolTip="{Binding L[UI.Settings]}" FontSize="16" Padding="6,2"/>
+                              FontSize="12"/>
+                    <Button Content="&#x2696;" FontSize="16"
+                            Style="{StaticResource IconBtn}"
+                            Command="{Binding OpenCalibrationCommand}"
+                            ToolTip="{Binding L[UI.Calibration]}"/>
+                    <Button Content="&#x2699;" FontSize="16"
+                            Style="{StaticResource IconBtn}"
+                            Command="{Binding OpenSettingsCommand}"
+                            ToolTip="{Binding L[UI.Settings]}"/>
                 </StackPanel>
                 <Border Width="1" Background="#33FFFFFF" Margin="4,2"/>
 
-                <!-- View Mode -->
+                <!-- View Toggles (圖表選擇按鈕已移除—重複功能，使用熱力圖區左上的 TabControl 切換)  -->
                 <StackPanel Orientation="Horizontal" Margin="4,0">
-                    <Button Content="{Binding L[UI.2DHeat]}" Style="{StaticResource BrandBtn}" Command="{Binding SetHeatmapModeCommand}" Padding="8,6"/>
-                    <Button Content="{Binding L[UI.2DContour]}" Style="{StaticResource BrandBtn}" Command="{Binding SetContourModeCommand}" Padding="8,6"/>
-                    <Button Content="{Binding L[UI.3D]}" Style="{StaticResource BrandBtn}" Click="Show3D_Click" Padding="8,6"/>
-                    <Button Content="{Binding L[UI.Trend]}" Style="{StaticResource BrandBtn}" Click="ShowTrend_Click" Padding="8,6"/>
-                    <ToggleButton Content="{Binding L[UI.Peak]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowPeakMap}"/>
-                    <ToggleButton Content="{Binding L[UI.Grid]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowGrid}"/>
-                    <ToggleButton Content="{Binding L[UI.Values]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowValues}"/>
-                    <ToggleButton Content="{Binding L[UI.CoPLabel]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowCoP}"/>
-                    <ToggleButton Content="{Binding L[UI.Legend]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowLegend}"/>
+                    <!-- 2D 熱圖/等高線切換 (DisplayMode 切換，原 SetHeatmap/SetContourCommand 整合) -->
+                    <ToggleButton Content="∿" FontSize="16"
+                                  Style="{StaticResource IconToggleBtn}"
+                                  IsChecked="{Binding ShowContourMode, Mode=TwoWay}"
+                                  ToolTip="{Binding L[UI.2DContour]}"/>
+                    <ToggleButton Content="&#x25B2;" FontSize="13"
+                                  Style="{StaticResource IconToggleBtn}"
+                                  IsChecked="{Binding ShowPeakMap}"
+                                  ToolTip="{Binding L[UI.Peak]}"/>
+                    <ToggleButton Content="&#x229E;" FontSize="14"
+                                  Style="{StaticResource IconToggleBtn}"
+                                  IsChecked="{Binding ShowGrid}"
+                                  ToolTip="{Binding L[UI.Grid]}"/>
+                    <ToggleButton Content="123" FontSize="11"
+                                  Style="{StaticResource IconToggleBtn}"
+                                  IsChecked="{Binding ShowValues}"
+                                  ToolTip="{Binding L[UI.Values]}"/>
+                    <ToggleButton Content="&#x2295;" FontSize="14"
+                                  Style="{StaticResource IconToggleBtn}"
+                                  IsChecked="{Binding ShowCoP}"
+                                  ToolTip="{Binding L[UI.CoPLabel]}"/>
+                    <ToggleButton Content="&#x25B0;" FontSize="13"
+                                  Style="{StaticResource IconToggleBtn}"
+                                  IsChecked="{Binding ShowLegend}"
+                                  ToolTip="{Binding L[UI.Legend]}"/>
+                    <Border Width="1" Background="#33FFFFFF" Margin="6,2"/>
+
+                    <!-- ROI 畫框 (按需求保留畫框能力，按鈕從右側 ROI panel 移到此處) -->
+                    <Button Content="&#x25AD;" FontSize="14"
+                            Style="{StaticResource IconBtn}"
+                            Command="{Binding AddRoiRectCommand}"
+                            ToolTip="{Binding L[Btn.Rect]}"/>
+                    <Button Content="&#x25EF;" FontSize="14"
+                            Style="{StaticResource IconBtn}"
+                            Command="{Binding AddRoiEllipseCommand}"
+                            ToolTip="{Binding L[Btn.Ellipse]}"/>
+                    <Button Content="&#x2716;" FontSize="13"
+                            Style="{StaticResource IconBtn}"
+                            Command="{Binding ClearRoiCommand}"
+                            ToolTip="{Binding L[Btn.Clear]}"/>
 
                     <!-- Interpolation Level -->
                     <Border Width="1" Background="#33FFFFFF" Margin="6,2"/>
-                    <TextBlock Text="{Binding L[UI.Interp]}" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="4,0,2,0"/>
-                    <ComboBox x:Name="InterpCombo" Width="80" SelectedIndex="0" SelectionChanged="InterpCombo_SelectionChanged" FontSize="11" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding L[UI.Interp]}" Foreground="{StaticResource TextSecondary}" FontSize="12" VerticalAlignment="Center" Margin="4,0,2,0"/>
+                    <ComboBox x:Name="InterpCombo" Width="80" SelectedIndex="0" SelectionChanged="InterpCombo_SelectionChanged" FontSize="12" VerticalAlignment="Center">
                         <ComboBoxItem Content="1×1"/>
                         <ComboBoxItem Content="3×3"/>
                         <ComboBoxItem Content="5×5"/>
@@ -249,36 +326,14 @@
                     </TabItem>
                 </TabControl>
 
-                <!-- Recording / Playback Bar -->
+                <!-- Status Bar (錄製/暫停/擷取按鈕已移到右側 panel；此處僅保留 FPS 與幀數資訊) -->
                 <Border Grid.Row="1" Background="{StaticResource PanelBg}" CornerRadius="4" Margin="2" Padding="8,4">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <!-- Recording -->
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,3">
-                            <Button Content="{Binding L[UI.Record]}" Style="{StaticResource RecordBtn}" Command="{Binding StartRecordingCommand}" FontWeight="Bold" Padding="10,4"/>
-                            <Button Content="⏹" Style="{StaticResource BrandBtn}" Command="{Binding StopRecordingCommand}" Padding="8,4"/>
-                            <Border Width="1" Background="#33FFFFFF" Margin="6,2"/>
-                            <TextBlock VerticalAlignment="Center" Margin="4,0" Foreground="{StaticResource TextSecondary}" FontSize="11">
-                                <Run Text="{Binding RecordingDuration, Mode=OneWay}" Foreground="{StaticResource BrandOrange}"/>
-                                <Run Text=" | "/> <Run Text="{Binding RecordingFrameCount, Mode=OneWay}"/> <Run Text="f"/>
-                            </TextBlock>
-                            <Border Width="1" Background="#33FFFFFF" Margin="6,2"/>
-                            <TextBlock VerticalAlignment="Center" Foreground="{StaticResource AccentGreen}" FontSize="11">
-                                <Run Text="FPS:"/> <Run Text="{Binding CurrentFps, StringFormat=F1, Mode=OneWay}"/>
-                                <Run Text=" | #"/> <Run Text="{Binding TotalFrames, Mode=OneWay}"/>
-                            </TextBlock>
-                        </StackPanel>
-
-                        <!-- Pause + Capture -->
-                        <StackPanel Grid.Row="1" Orientation="Horizontal">
-                            <ToggleButton Content="{Binding L[UI.Freeze]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding IsFrozen}" ToolTip="{Binding L[UI.Freeze]}" Padding="10,4" FontSize="13"/>
-                            <Button Content="{Binding L[UI.Capture]}" Style="{StaticResource BrandBtn}" Command="{Binding CaptureFrameCommand}" ToolTip="{Binding L[UI.Capture]}" Padding="10,4" FontSize="13"/>
-                        </StackPanel>
-                    </Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock VerticalAlignment="Center" Foreground="{StaticResource AccentGreen}" FontSize="13">
+                            <Run Text="FPS: "/>
+                            <Run Text="{Binding CurrentFps, StringFormat=F1, Mode=OneWay}"/>
+                        </TextBlock>
+                    </StackPanel>
                 </Border>
             </Grid>
 
@@ -286,166 +341,36 @@
             <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="4">
 
-                    <!-- Statistics -->
-                    <GroupBox Header="{Binding L[Panel.Stats]}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
-                                <RowDefinition/><RowDefinition/><RowDefinition/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding L[Stats.PeakPressure]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Foreground="{StaticResource BrandOrange}" FontWeight="Bold" FontSize="14" Margin="2">
-                                <Run Text="{Binding PeakPressure, StringFormat=F1, Mode=OneWay}"/><Run Text=" g"/>
-                            </TextBlock>
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding L[Stats.TotalForce]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Margin="2"><Run Text="{Binding TotalForce, StringFormat=F1, Mode=OneWay}"/><Run Text=" g"/></TextBlock>
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding L[Stats.AvgPressure]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Margin="2"><Run Text="{Binding AveragePressure, StringFormat=F1, Mode=OneWay}"/><Run Text=" g"/></TextBlock>
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding L[Stats.ActivePoints]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
-                            <TextBlock Grid.Row="3" Grid.Column="1" Margin="2"><Run Text="{Binding ActivePoints, Mode=OneWay}"/><Run Text=" / 1600"/></TextBlock>
-                            <TextBlock Grid.Row="4" Grid.Column="0" Text="{Binding L[Stats.ContactArea]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
-                            <TextBlock Grid.Row="4" Grid.Column="1" Margin="2"><Run Text="{Binding ContactArea, StringFormat=F2, Mode=OneWay}"/><Run Text=" mm²"/></TextBlock>
-                            <TextBlock Grid.Row="5" Grid.Column="0" Text="{Binding L[Stats.CoP]}" Foreground="{StaticResource TextSecondary}" Margin="2"/>
-                            <TextBlock Grid.Row="5" Grid.Column="1" Margin="2">
-                                <Run Text="("/><Run Text="{Binding CoPX, StringFormat=F1, Mode=OneWay}"/>
-                                <Run Text=","/><Run Text="{Binding CoPY, StringFormat=F1, Mode=OneWay}"/><Run Text=") mm"/>
-                            </TextBlock>
-                            <TextBlock Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Margin="2,4,2,0" Foreground="{StaticResource TextSecondary}" FontSize="10"
-                                       Text="{Binding HoverInfo, Mode=OneWay}" TextWrapping="Wrap"/>
-                        </Grid>
-                    </GroupBox>
+                    <!-- Statistics panel removed (重複資訊—使用熱力圖區內嵌統計面板) -->
 
-                    <!-- PEAK -->
+                    <!-- PEAK 峰值追蹤 (單點 session 最大值；品管記錄重要指標) -->
                     <GroupBox Header="{Binding L[Panel.Peak]}">
                         <StackPanel>
-                            <TextBlock Foreground="{StaticResource AccentRed}" FontWeight="Bold" FontSize="16" Margin="2">
+                            <TextBlock Foreground="{StaticResource AccentRed}" FontWeight="Bold" FontSize="18" Margin="2">
                                 <Run Text="{Binding SessionPeakPressure, StringFormat=F1, Mode=OneWay}"/><Run Text=" g"/>
                             </TextBlock>
-                            <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11" Margin="2">
+                            <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="2">
                                 <Run Text="@Row "/><Run Text="{Binding SessionPeakRow, Mode=OneWay}"/>
                                 <Run Text=" Col "/><Run Text="{Binding SessionPeakCol, Mode=OneWay}"/>
                             </TextBlock>
-                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                <Button Content="{Binding L[Btn.Reset]}" Style="{StaticResource BrandBtn}" Command="{Binding ResetPeakCommand}" Padding="8,4"/>
-                                <ToggleButton Content="{Binding L[Btn.PeakMap]}" Style="{StaticResource ToolBtn}" IsChecked="{Binding ShowPeakMap}"/>
-                            </StackPanel>
+                            <Button Content="{Binding L[Btn.Reset]}" Style="{StaticResource BrandBtn}"
+                                    Command="{Binding ResetPeakCommand}" Padding="10,5" Margin="2,4,2,0"
+                                    HorizontalAlignment="Left"/>
                         </StackPanel>
                     </GroupBox>
 
-                    <!-- ROI Analysis -->
-                    <GroupBox Header="{Binding L[Panel.ROI]}">
-                        <StackPanel>
-                            <WrapPanel>
-                                <Button Content="{Binding L[Btn.Rect]}" Style="{StaticResource BrandBtn}" Command="{Binding AddRoiRectCommand}" Padding="8,4"/>
-                                <Button Content="{Binding L[Btn.Ellipse]}" Style="{StaticResource BrandBtn}" Command="{Binding AddRoiEllipseCommand}" Padding="8,4"/>
-                                <Button Content="{Binding L[Btn.Clear]}" Style="{StaticResource BrandBtn}" Command="{Binding ClearRoiCommand}" Padding="8,4"/>
-                            </WrapPanel>
-                            <TextBlock Text="{Binding RoiStatsText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}"
-                                       FontSize="10" FontFamily="Consolas" TextWrapping="Wrap" Margin="2,4,2,0"/>
-                            <ItemsControl ItemsSource="{Binding RoiRegions}" Margin="0,4,0,0">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock FontSize="10" Margin="2,1">
-                                            <Run Text="■" Foreground="{Binding Color}"/>
-                                            <Run Text="{Binding Name, Mode=OneWay}" Foreground="{StaticResource TextPrimary}"/>
-                                            <Run Text="{Binding Type, Mode=OneWay}" Foreground="{StaticResource TextSecondary}"/>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </GroupBox>
+                    <!-- ROI Analysis panel removed (按需求保留畫框能力但不顯示分析面板) -->
 
                     <!-- Comparison -->
                     <GroupBox Header="比對分析 / Comparison">
                         <StackPanel>
-                            <!-- 模式切換 -->
-                            <ComboBox x:Name="ComparisonModeCombo"
-                                      SelectedIndex="{Binding ComparisonModeIndex}"
-                                      Margin="2,2,2,4">
-                                <ComboBox.Style>
-                                    <Style TargetType="ComboBox">
-                                        <Setter Property="Background" Value="#FF2D2D40"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                        <Setter Property="BorderBrush" Value="#44FFFFFF"/>
-                                        <Setter Property="BorderThickness" Value="1"/>
-                                        <Setter Property="Padding" Value="6,4"/>
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="ComboBox">
-                                                    <Grid>
-                                                        <ToggleButton x:Name="ToggleBtn"
-                                                            IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                                                            ClickMode="Press" Focusable="False">
-                                                            <ToggleButton.Template>
-                                                                <ControlTemplate TargetType="ToggleButton">
-                                                                    <Border x:Name="Border"
-                                                                            Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}"
-                                                                            BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}"
-                                                                            BorderThickness="1" CornerRadius="3">
-                                                                        <Grid>
-                                                                            <Grid.ColumnDefinitions>
-                                                                                <ColumnDefinition Width="*"/>
-                                                                                <ColumnDefinition Width="20"/>
-                                                                            </Grid.ColumnDefinitions>
-                                                                            <Path Grid.Column="1" Data="M0,0 L4,4 8,0" Stroke="White" StrokeThickness="1.5"
-                                                                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                        </Grid>
-                                                                    </Border>
-                                                                </ControlTemplate>
-                                                            </ToggleButton.Template>
-                                                        </ToggleButton>
-                                                        <ContentPresenter x:Name="ContentSite"
-                                                            Content="{TemplateBinding SelectionBoxItem}"
-                                                            ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                                            Margin="8,4,24,4" VerticalAlignment="Center" HorizontalAlignment="Left"
-                                                            IsHitTestVisible="False"
-                                                            TextBlock.Foreground="White"/>
-                                                        <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}"
-                                                               Placement="Bottom" Focusable="False" AllowsTransparency="True">
-                                                            <Border Background="#FF252536" BorderBrush="#44FFFFFF" BorderThickness="1"
-                                                                    CornerRadius="3" Margin="0,2,0,0">
-                                                                <StackPanel IsItemsHost="True"/>
-                                                            </Border>
-                                                        </Popup>
-                                                    </Grid>
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-                                </ComboBox.Style>
-                                <ComboBox.Resources>
-                                    <Style TargetType="ComboBoxItem">
-                                        <Setter Property="Background" Value="Transparent"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                        <Setter Property="Padding" Value="6,4"/>
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="ComboBoxItem">
-                                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-                                                        <ContentPresenter TextBlock.Foreground="{TemplateBinding Foreground}"/>
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsHighlighted" Value="True">
-                                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource BrandOrange}"/>
-                                                        </Trigger>
-                                                        <Trigger Property="IsSelected" Value="True">
-                                                            <Setter TargetName="Bd" Property="Background" Value="#FF3D3D55"/>
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-                                </ComboBox.Resources>
-                                <ComboBoxItem Content="樣品-樣品"/>
-                                <ComboBoxItem Content="基準-待測 (OK/NG)"/>
-                                <ComboBoxItem Content="前-後 (變化)"/>
-                            </ComboBox>
+                            <!-- 模式說明 -->
+                            <Border Background="#FF2D2D40" Padding="6,4" Margin="2,2,2,4"
+                                    BorderBrush="#FFED7D31" BorderThickness="1" CornerRadius="2">
+                                <TextBlock Text="模式：基準-待測 (Reference vs DUT)"
+                                           Foreground="#FFED7D31" FontWeight="Bold" FontSize="11"
+                                           HorizontalAlignment="Center"/>
+                            </Border>
 
                             <!-- A / B 摘要 -->
                             <Grid Margin="0,2">
@@ -473,10 +398,17 @@
                                 </Border>
                             </Grid>
 
-                            <!-- 設為 A / B 按鈕 -->
-                            <TextBlock Text="先按工具列「Freeze」凍結畫面，再選擇:"
-                                       Foreground="{StaticResource TextSecondary}" FontSize="10"
-                                       Margin="2,4,2,2"/>
+                            <!-- 凍結畫面（從左下方搬移過來的 Pause 按鈕） + 設為 A / B 按鈕 -->
+                            <TextBlock Text="1. 先按「凍結」鎖住畫面，2. 再按「設為 A」或「設為 B」"
+                                       Foreground="{StaticResource TextSecondary}" FontSize="11"
+                                       Margin="2,4,2,2" TextWrapping="Wrap"/>
+                            <ToggleButton Content="❄ 凍結畫面"
+                                          Style="{StaticResource ToolBtn}"
+                                          IsChecked="{Binding IsFrozen}"
+                                          ToolTip="{Binding L[UI.Freeze]}"
+                                          HorizontalAlignment="Stretch"
+                                          Padding="10,5" Margin="2,2"
+                                          FontWeight="Bold"/>
                             <WrapPanel>
                                 <Button Content="設為 A" Style="{StaticResource BrandBtn}"
                                         Command="{Binding SetSnapshotACommand}" Padding="10,4"/>
@@ -508,14 +440,35 @@
                         </WrapPanel>
                     </GroupBox>
 
-                    <!-- Session Management -->
+                    <!-- Session Management（含錄製按鈕：原左下方搬移過來） -->
                     <GroupBox Header="{Binding L[Panel.Recording]}">
                         <StackPanel>
+                            <!-- 錄製控制（原左下方搬移過來） -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <Button Content="{Binding L[UI.Record]}"
+                                        Style="{StaticResource RecordBtn}"
+                                        Command="{Binding StartRecordingCommand}"
+                                        FontWeight="Bold" Padding="10,5"/>
+                                <Button Content="⏹"
+                                        Style="{StaticResource BrandBtn}"
+                                        Command="{Binding StopRecordingCommand}"
+                                        Padding="10,5" FontSize="14"
+                                        ToolTip="{Binding L[UI.StopRecord]}"/>
+                                <TextBlock VerticalAlignment="Center" Margin="6,0"
+                                           Foreground="{StaticResource BrandOrange}"
+                                           FontFamily="Consolas" FontSize="13">
+                                    <Run Text="{Binding RecordingDuration, Mode=OneWay}"/>
+                                    <Run Text=" | "/>
+                                    <Run Text="{Binding RecordingFrameCount, Mode=OneWay}"/><Run Text="f"/>
+                                </TextBlock>
+                            </StackPanel>
+                            <Border Height="1" Background="#33FFFFFF" Margin="2,2,2,4"/>
+
                             <ListBox Height="90" ItemsSource="{Binding RecordedSessions}" SelectedItem="{Binding SelectedSession}"
                                      Background="{StaticResource SurfaceBg}" Foreground="{StaticResource TextPrimary}" BorderBrush="#33FFFFFF">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock FontSize="11">
+                                        <TextBlock FontSize="12">
                                             <Run Text="{Binding Name, Mode=OneWay}"/> <Run Text="{Binding Frames.Count, StringFormat='({0}f)', Mode=OneWay}" Foreground="{StaticResource TextSecondary}"/>
                                         </TextBlock>
                                     </DataTemplate>
@@ -529,18 +482,15 @@
                         </StackPanel>
                     </GroupBox>
 
-                    <!-- Sensor Info -->
-                    <GroupBox Header="{Binding L[Panel.Sensor]}">
-                        <StackPanel>
-                            <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="10" TextWrapping="Wrap" LineHeight="16"><Run Language="zh-tw" Text="PMS-1600"/><LineBreak/><Run Text="40×40 (1600pts) | 0.5mm pitch"/><LineBreak/><Run Text="5g~1000g | 0.2KΩ~500KΩ"/><LineBreak/><Run Text="USB 115200,8N1 | &lt;10μs"/></TextBlock>
-                            <Button Content="{Binding L[Btn.Diagnostic]}" Style="{StaticResource BrandBtn}" Command="{Binding ToggleDiagCommand}" Margin="0,4,0,0" Padding="6,3"/>
-                        </StackPanel>
-                    </GroupBox>
+                    <!-- Sensor Info panel removed (按需求移除—感測器資訊在 HEADER 上方已顯示) -->
 
-                    <!-- Diagnostic Panel (toggleable) -->
+                    <!-- Diagnostic Panel (toggleable—診斷工具，獨立保留) -->
                     <GroupBox Header="{Binding L[Panel.Diagnostic]}" Visibility="{Binding ShowDiagPanel, Converter={StaticResource BoolToVis}}">
                         <StackPanel>
-                            <TextBlock Foreground="{StaticResource AccentGreen}" FontSize="11" Margin="2">
+                            <Button Content="{Binding L[Btn.Diagnostic]}" Style="{StaticResource BrandBtn}"
+                                    Command="{Binding ToggleDiagCommand}" Margin="0,0,0,4" Padding="6,3"
+                                    HorizontalAlignment="Right"/>
+                            <TextBlock Foreground="{StaticResource AccentGreen}" FontSize="12" Margin="2">
                                 <Run Text="{Binding L[Diag.Bytes]}"/><Run Text=" "/><Run Text="{Binding BytesReceivedCount, Mode=OneWay}"/>
                                 <Run Text=" | "/><Run Text="{Binding L[Diag.Frames]}"/><Run Text=" "/><Run Text="{Binding TotalFrames, Mode=OneWay}"/>
                             </TextBlock>

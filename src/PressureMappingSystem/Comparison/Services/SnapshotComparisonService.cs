@@ -3,158 +3,226 @@ using PressureMappingSystem.Comparison.Models;
 namespace PressureMappingSystem.Comparison.Services;
 
 /// <summary>
-/// 兩張 CapturedSnapshot 的比對核心演算法。
+/// 兩張快照的四分項加權評分。
 ///
-/// 設計思路：
-///   底層數據（差值矩陣、MAE、相關係數等）三模式都計算，
-///   只有 Reference vs DUT 模式額外計算「超容差判定」、
-///   只有 Before-After 模式額外計算「正/負變化分量」。
-///   呼叫端依 Mode 決定要顯示哪些欄位、用什麼配色。
+/// 業界依據：
+///   1. 重量準度（Weight）：基於 Total Force 相對誤差，線性衰減
+///      formula: WeightScore = 100 × max(0, 1 − |ErrPercent| / Tolerance)
+///
+///   2. 形狀相似度（Shape）：SSIM (Structural Similarity Index Measure)
+///      Wang, Z. et al. (2004) "Image quality assessment: From error visibility to structural similarity"
+///      IEEE TIP 業界視覺品管標準
+///
+///   3. 位置吻合（Position）：CoP (Center of Pressure) 偏移
+///      formula: PositionScore = 100 × max(0, 1 − Shift / MaxAllowedShift)
+///
+///   4. 面積吻合（Area）：IoU (Intersection over Union)
+///      formula: IoU = |A ∩ B| / |A ∪ B| (受壓點集合)
+///      AreaScore = 100 × IoU
+///
+/// 加權後 RawScore = ΣWi × Si；FinalScore 進入合格區（≥95）飽和為 100。
 /// </summary>
 public static class SnapshotComparisonService
 {
-    /// <summary>
-    /// 比對兩張快照
-    /// </summary>
-    /// <param name="a">A 快照</param>
-    /// <param name="b">B 快照</param>
-    /// <param name="mode">比對模式</param>
-    /// <param name="toleranceGrams">Reference-DUT 模式的絕對容差（g），其他模式忽略</param>
-    /// <param name="tolerancePercent">Reference-DUT 模式的相對容差（%），相對於 A 的對應點值</param>
-    public static ComparisonResult Compare(
-        CapturedSnapshot a, CapturedSnapshot b,
-        ComparisonMode mode,
-        double toleranceGrams = 5.0,
-        double tolerancePercent = 5.0)
-    {
-        var result = new ComparisonResult
-        {
-            Mode = mode,
-            ToleranceGrams = toleranceGrams,
-            TolerancePercent = tolerancePercent,
-        };
+    private const int Rows = 40;
+    private const int Cols = 40;
+    private const double NoiseFloor = 5.0;  // 視為「有受壓」的最低值
 
-        if (a == null || b == null)
+    public static ComparisonResult Compare(
+        CapturedSnapshot reference,  // A = 黃金樣品
+        CapturedSnapshot dut,        // B = 待測
+        ScoringConfig config)
+    {
+        var result = new ComparisonResult { Config = config };
+
+        if (reference == null || dut == null)
         {
-            result.Warnings.Add("比對需要 A 與 B 兩張快照");
+            result.Warnings.Add("Comparison requires both Reference (A) and DUT (B) snapshots");
             return result;
         }
 
-        const int rows = 40, cols = 40;
-
-        // ── Step 1: 元素差、絕對差、計算統計量 ──
+        // ── 計算各種差值 ──
         double sumAbsDiff = 0;
-        double sumSqDiff = 0;
         double maxAbs = 0;
-        int totalPoints = rows * cols;
-
-        // For Pearson correlation
-        double sumA = 0, sumB = 0;
-        for (int r = 0; r < rows; r++)
-            for (int c = 0; c < cols; c++)
-            {
-                sumA += a.PressureGrams[r, c];
-                sumB += b.PressureGrams[r, c];
-            }
-        double meanA = sumA / totalPoints;
-        double meanB = sumB / totalPoints;
-
-        double cov = 0, varA = 0, varB = 0;
-        double totalIncrease = 0, totalDecrease = 0;
-        int outOfTolCount = 0;
-
-        for (int r = 0; r < rows; r++)
+        for (int r = 0; r < Rows; r++)
         {
-            for (int c = 0; c < cols; c++)
+            for (int c = 0; c < Cols; c++)
             {
-                double va = a.PressureGrams[r, c];
-                double vb = b.PressureGrams[r, c];
-                double d = va - vb;
-                double abs = Math.Abs(d);
-
-                result.SignedDiff[r, c] = d;
-                result.AbsDiff[r, c] = abs;
-
-                sumAbsDiff += abs;
-                sumSqDiff += d * d;
-                if (abs > maxAbs) maxAbs = abs;
-
-                // Pearson 累積
-                double da = va - meanA;
-                double db = vb - meanB;
-                cov += da * db;
-                varA += da * da;
-                varB += db * db;
-
-                // Before-After 變化方向累積
-                if (d > 0) totalIncrease += d;
-                else totalDecrease += -d;
-
-                // Reference-DUT 容差判定（只算非零點，避免大量背景 0 灌水）
-                if (mode == ComparisonMode.ReferenceVsDut && (va > 0 || vb > 0))
-                {
-                    double allowedAbs = toleranceGrams;
-                    double allowedRel = Math.Abs(va) * tolerancePercent / 100.0;
-                    double allowed = Math.Max(allowedAbs, allowedRel);
-                    if (abs > allowed) outOfTolCount++;
-                }
+                double d = Math.Abs(reference.PressureGrams[r, c] - dut.PressureGrams[r, c]);
+                result.AbsDiff[r, c] = d;
+                sumAbsDiff += d;
+                if (d > maxAbs) maxAbs = d;
             }
         }
-
-        result.MAE = sumAbsDiff / totalPoints;
-        result.RMSE = Math.Sqrt(sumSqDiff / totalPoints);
+        result.MAE = sumAbsDiff / (Rows * Cols);
         result.MaxAbsDiff = maxAbs;
-        result.TotalIncrease = totalIncrease;
-        result.TotalDecrease = totalDecrease;
 
-        // Pearson 相關係數
-        double denom = Math.Sqrt(varA * varB);
-        if (denom > 1e-12)
-            result.PearsonR = cov / denom;
-        else
-            result.PearsonR = 0;  // 至少一邊全平坦時無法定義
+        // ── 摘要差 ──
+        result.PeakDelta = dut.Peak - reference.Peak;
+        result.TotalForceDelta = dut.TotalForce - reference.TotalForce;
+        result.ActivePointsDelta = dut.ActivePoints - reference.ActivePoints;
+        result.ContactAreaDelta = dut.ContactArea - reference.ContactArea;
 
-        // ── Step 2: 摘要差 ──
-        result.PeakDelta = a.Peak - b.Peak;
-        result.TotalForceDelta = a.TotalForce - b.TotalForce;
-        result.ActivePointsDelta = a.ActivePoints - b.ActivePoints;
-        result.ContactAreaDelta = a.ContactArea - b.ContactArea;
-
-        double dx = a.CoPX - b.CoPX;
-        double dy = a.CoPY - b.CoPY;
-        // CoP 是 row/col index，乘以 pitch 0.5mm 換成 mm
+        double dx = reference.CoPX - dut.CoPX;
+        double dy = reference.CoPY - dut.CoPY;
+        // CoP 是 row/col index，pitch 0.5mm 換算成 mm
         result.CoPShiftMm = Math.Sqrt(dx * dx + dy * dy) * 0.5;
 
-        // ── Step 3: Reference-DUT 判定 ──
-        if (mode == ComparisonMode.ReferenceVsDut)
+        // ── 1. WeightScore（Total Force 準度） ──
+        result.WeightScore = ComputeWeightScore(reference, dut, config, result);
+
+        // ── 2. ShapeScore（SSIM） ──
+        result.Ssim = ComputeSsim(reference.PressureGrams, dut.PressureGrams);
+        result.ShapeScore = Math.Clamp(result.Ssim * 100.0, 0, 100);
+
+        // ── 3. PositionScore（CoP shift） ──
+        result.PositionScore = ComputePositionScore(result.CoPShiftMm, config);
+
+        // ── 4. AreaScore（IoU） ──
+        result.IoU = ComputeIoU(reference.PressureGrams, dut.PressureGrams);
+        result.AreaScore = Math.Clamp(result.IoU * 100.0, 0, 100);
+
+        // ── 加權平均：RawScore ──
+        // 為防範使用者在 JSON 裡權重和 ≠ 1，正規化一次
+        double sum = config.WeightSum;
+        if (sum < 1e-6)
         {
-            // 統計有效點（非背景）作為分母
-            int validPoints = 0;
-            for (int r = 0; r < rows; r++)
-                for (int c = 0; c < cols; c++)
-                    if (a.PressureGrams[r, c] > 0 || b.PressureGrams[r, c] > 0)
-                        validPoints++;
-
-            result.OutOfToleranceCount = outOfTolCount;
-            result.OutOfTolerancePercent = validPoints > 0
-                ? (double)outOfTolCount / validPoints * 100.0
-                : 0;
-
-            // 判定原則：
-            //   1. 沒有任何點超出容差 → PASS
-            //   2. 超出容差的點 < 5%（可能是邊緣雜訊）→ PASS（warning）
-            //   3. 超出容差的點 ≥ 5% → FAIL
-            //
-            // 也可以用「Peak 必須在容差內」當硬性條件
-            bool peakOk = Math.Abs(result.PeakDelta) <= Math.Max(toleranceGrams, a.Peak * tolerancePercent / 100.0);
-            result.IsPass = peakOk && result.OutOfTolerancePercent < 5.0;
-
-            if (!peakOk)
-                result.Warnings.Add($"Peak 差 {result.PeakDelta:+0.0;-0.0;0} g 超出容差");
-            if (result.OutOfTolerancePercent >= 5.0)
-                result.Warnings.Add($"超容差點佔比 {result.OutOfTolerancePercent:F1}% ≥ 5%");
+            result.Warnings.Add("ScoringConfig: weights sum to zero, using equal 0.25 each");
+            result.RawScore = (result.WeightScore + result.ShapeScore + result.PositionScore + result.AreaScore) / 4.0;
         }
+        else
+        {
+            double w = config.WeightFactor / sum;
+            double sh = config.ShapeFactor / sum;
+            double p = config.PositionFactor / sum;
+            double a = config.AreaFactor / sum;
+            result.RawScore = w * result.WeightScore
+                            + sh * result.ShapeScore
+                            + p * result.PositionScore
+                            + a * result.AreaScore;
+        }
+        result.RawScore = Math.Clamp(result.RawScore, 0, 100);
+
+        // ── 飽和區：≥ PassZoneThreshold 顯示 100 ──
+        result.IsInPassZone = result.RawScore >= config.PassZoneThreshold;
+        result.FinalScore = result.IsInPassZone ? 100.0 : result.RawScore;
+
+        // ── 合格判定 ──
+        result.IsPass = result.FinalScore >= config.PassThreshold;
 
         return result;
+    }
+
+    // ─────────────────────────────────────────────────────
+    private static double ComputeWeightScore(
+        CapturedSnapshot a, CapturedSnapshot b,
+        ScoringConfig cfg, ComparisonResult result)
+    {
+        if (a.TotalForce < 1e-6)
+        {
+            result.Warnings.Add("Weight score: reference total force ~ 0, set to 0");
+            return 0;
+        }
+
+        double errPct = Math.Abs(b.TotalForce - a.TotalForce) / a.TotalForce * 100.0;
+        result.WeightErrorPercent = errPct;
+
+        if (cfg.WeightTolerancePercent < 1e-6)
+            return errPct < 0.01 ? 100 : 0;  // 極嚴格邊界
+
+        double score = 100.0 * (1.0 - errPct / cfg.WeightTolerancePercent);
+        return Math.Clamp(score, 0, 100);
+    }
+
+    private static double ComputePositionScore(double shiftMm, ScoringConfig cfg)
+    {
+        if (cfg.MaxCopShiftMm < 1e-6) return shiftMm < 0.01 ? 100 : 0;
+        double score = 100.0 * (1.0 - shiftMm / cfg.MaxCopShiftMm);
+        return Math.Clamp(score, 0, 100);
+    }
+
+    /// <summary>
+    /// IoU on active region:
+    ///   有受壓的點集合 A = {(r,c) | a[r,c] > NoiseFloor}
+    ///   有受壓的點集合 B = {(r,c) | b[r,c] > NoiseFloor}
+    ///   IoU = |A ∩ B| / |A ∪ B|
+    /// </summary>
+    private static double ComputeIoU(double[,] a, double[,] b)
+    {
+        int inter = 0, union = 0;
+        for (int r = 0; r < Rows; r++)
+            for (int c = 0; c < Cols; c++)
+            {
+                bool inA = a[r, c] > NoiseFloor;
+                bool inB = b[r, c] > NoiseFloor;
+                if (inA && inB) inter++;
+                if (inA || inB) union++;
+            }
+        if (union == 0) return 1.0;  // 兩邊都空 → 視為完全一致
+        return (double)inter / union;
+    }
+
+    /// <summary>
+    /// SSIM (Structural Similarity Index Measure)
+    /// Wang et al. 2004
+    ///
+    /// 全域單窗版本（簡化版）：
+    ///   μx, μy: 平均
+    ///   σx², σy²: 變異數
+    ///   σxy: 共變異數
+    ///   c1 = (k1 × L)², c2 = (k2 × L)²
+    ///   L = 動態範圍（取兩圖最大值）
+    ///   k1 = 0.01, k2 = 0.03（業界標準常數）
+    ///
+    ///   SSIM = ((2μxμy + c1)(2σxy + c2)) / ((μx² + μy² + c1)(σx² + σy² + c2))
+    ///
+    /// 全域版對「整圖結構」的判讀夠用；若客戶要求多窗 mean SSIM 可後續擴充。
+    /// </summary>
+    private static double ComputeSsim(double[,] a, double[,] b)
+    {
+        int n = Rows * Cols;
+
+        double sumA = 0, sumB = 0;
+        double maxA = 0, maxB = 0;
+        for (int r = 0; r < Rows; r++)
+            for (int c = 0; c < Cols; c++)
+            {
+                sumA += a[r, c]; sumB += b[r, c];
+                if (a[r, c] > maxA) maxA = a[r, c];
+                if (b[r, c] > maxB) maxB = b[r, c];
+            }
+        double meanA = sumA / n;
+        double meanB = sumB / n;
+
+        double varA = 0, varB = 0, cov = 0;
+        for (int r = 0; r < Rows; r++)
+            for (int c = 0; c < Cols; c++)
+            {
+                double da = a[r, c] - meanA;
+                double db = b[r, c] - meanB;
+                varA += da * da;
+                varB += db * db;
+                cov += da * db;
+            }
+        varA /= (n - 1);
+        varB /= (n - 1);
+        cov /= (n - 1);
+
+        // 動態範圍 L：取兩圖中較大的 max；避免兩圖都 0 造成 0/0
+        double L = Math.Max(maxA, maxB);
+        if (L < 1e-6) return 1.0;  // 兩圖都空 → 完全相似
+
+        const double k1 = 0.01;
+        const double k2 = 0.03;
+        double c1 = (k1 * L) * (k1 * L);
+        double c2 = (k2 * L) * (k2 * L);
+
+        double num = (2 * meanA * meanB + c1) * (2 * cov + c2);
+        double den = (meanA * meanA + meanB * meanB + c1) * (varA + varB + c2);
+        if (den < 1e-12) return 0;
+        double ssim = num / den;
+
+        // SSIM 數學上 [-1, 1]，clamp 到 [0, 1] 給分
+        return Math.Clamp(ssim, 0.0, 1.0);
     }
 }

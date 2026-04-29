@@ -64,16 +64,4 @@ public partial class MainWindow : Window
             _viewModel.InterpolationLevel = levels[combo.SelectedIndex];
         }
     }
-
-    private void Show3D_Click(object sender, RoutedEventArgs e)
-    {
-        if (_viewModel == null) return;
-        _viewModel.SelectedViewTab = 1;
-    }
-
-    private void ShowTrend_Click(object sender, RoutedEventArgs e)
-    {
-        if (_viewModel == null) return;
-        _viewModel.SelectedViewTab = 2;
-    }
 }

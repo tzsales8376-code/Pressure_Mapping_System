@@ -256,12 +256,12 @@ public class LocalizationService : INotifyPropertyChanged
 
             // ── HeatmapControl 用 ──
             ["Heatmap.RealTimeStats"] = "即時統計",
-            ["Heatmap.Peak"] = "Peak",
-            ["Heatmap.TotalForce"] = "Total Force",
-            ["Heatmap.ForceArea"] = "Force Area",
-            ["Heatmap.Average"] = "Average",
-            ["Heatmap.ActivePoints"] = "Active Points",
-            ["Heatmap.CoPmm"] = "CoP (mm)",
+            ["Heatmap.Peak"] = "峰值",
+            ["Heatmap.TotalForce"] = "總壓力",
+            ["Heatmap.ForceArea"] = "受壓面積",
+            ["Heatmap.Average"] = "平均",
+            ["Heatmap.ActivePoints"] = "觸發點數",
+            ["Heatmap.CoPmm"] = "壓力重心 (mm)",
             ["Heatmap.PressureUnit"] = "壓力 (gf)",
             ["Heatmap.WaitingData"] = "等待資料中...",
             ["Heatmap.ROISummary"] = "ROI 摘要",

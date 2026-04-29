@@ -46,7 +46,6 @@ public class ExportService
 
         // Header
         sb.AppendLine("# Pressure Mapping System - Data Export");
-        sb.AppendLine($"# Frame: {frame.FrameIndex}");
         sb.AppendLine($"# Timestamp: {frame.TimestampMs:F2} ms");
         sb.AppendLine($"# Peak Pressure: {frame.PeakPressureGrams:F1} g at ({frame.PeakRow},{frame.PeakCol})");
         sb.AppendLine($"# Total Force: {frame.TotalForceGrams:F1} g");
@@ -137,7 +136,7 @@ public class ExportService
             Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
                 SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
         };
-        canvas.DrawText($"Frame #{frame.FrameIndex} | Peak: {frame.PeakPressureGrams:F0}g | " +
+        canvas.DrawText($"Peak: {frame.PeakPressureGrams:F0}g | " +
                         $"Total: {frame.TotalForceGrams:F0}g", 10, 20, titlePaint);
 
         using var image = surface.Snapshot();

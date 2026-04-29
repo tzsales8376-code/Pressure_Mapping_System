@@ -97,7 +97,6 @@ public class MainViewModel : ViewModelBase, IDisposable
     // ── Snapshot Comparison State ──
     private CapturedSnapshot? _snapshotA;
     private CapturedSnapshot? _snapshotB;
-    private ComparisonMode _comparisonMode = ComparisonMode.SampleToSample;
 
     // Zero / Tare + Baseline + Threshold
     private bool _isZeroEnabled;
@@ -139,7 +138,36 @@ public class MainViewModel : ViewModelBase, IDisposable
     public bool IsSimulating { get => _isSimulating; set => SetProperty(ref _isSimulating, value); }
     public bool IsRecording { get => _isRecording; set => SetProperty(ref _isRecording, value); }
     public bool ShowPeakMap { get => _showPeakMap; set { SetProperty(ref _showPeakMap, value); UpdateDisplay(); } }
-    public HeatmapDisplayMode DisplayMode { get => _displayMode; set => SetProperty(ref _displayMode, value); }
+    public HeatmapDisplayMode DisplayMode
+    {
+        get => _displayMode;
+        set
+        {
+            if (SetProperty(ref _displayMode, value))
+            {
+                OnPropertyChanged(nameof(ShowContourMode));
+            }
+        }
+    }
+
+    /// <summary>
+    /// TwoWay binding 輔助：toggle 勾選 = Contour、取消 = Heatmap。
+    /// </summary>
+    public bool ShowContourMode
+    {
+        get => _displayMode == HeatmapDisplayMode.Contour;
+        set
+        {
+            var mode = value ? HeatmapDisplayMode.Contour : HeatmapDisplayMode.Heatmap;
+            if (mode != _displayMode)
+            {
+                _displayMode = mode;
+                OnPropertyChanged(nameof(DisplayMode));
+                OnPropertyChanged(nameof(ShowContourMode));
+                SelectedViewTab = 0;
+            }
+        }
+    }
     public string SelectedPort { get => _selectedPort; set => SetProperty(ref _selectedPort, value); }
     public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
     public double CurrentFps { get => _currentFps; set => SetProperty(ref _currentFps, value); }
@@ -416,20 +444,6 @@ public class MainViewModel : ViewModelBase, IDisposable
         : $"Peak {_snapshotB.Peak:F0}g  Total {_snapshotB.TotalForce / 1000:F2}kg\n@ {_snapshotB.CapturedAt:HH:mm:ss}";
 
     public bool HasBothSnapshots => _snapshotA != null && _snapshotB != null;
-
-    public int ComparisonModeIndex
-    {
-        get => (int)_comparisonMode;
-        set
-        {
-            var mode = (ComparisonMode)value;
-            if (mode != _comparisonMode)
-            {
-                _comparisonMode = mode;
-                OnPropertyChanged();
-            }
-        }
-    }
 
     // ── Commands ──
     public ICommand ConnectCommand { get; }
@@ -1033,7 +1047,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         }
         try
         {
-            var window = new ComparisonWindow(SnapshotA, SnapshotB, _comparisonMode, _exportFolder)
+            var window = new ComparisonWindow(SnapshotA, SnapshotB, _exportFolder)
             {
                 Owner = Application.Current.MainWindow
             };

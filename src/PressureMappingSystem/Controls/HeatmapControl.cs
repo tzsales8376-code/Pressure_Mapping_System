@@ -745,16 +745,27 @@ public class HeatmapControl : SKElement
             };
             canvas.DrawRect(x, y, w, h, fillPaint);
 
-            // Dashed border
+            // Bold black border (per UI spec: 粗黑外框, 易辨識)
             using var borderPaint = new SKPaint
             {
-                Color = roi.BorderColor,
+                Color = SKColors.Black,
                 Style = SKPaintStyle.Stroke,
-                StrokeWidth = 2.5f,
-                PathEffect = SKPathEffect.CreateDash(new float[] { 6, 3 }, 0),
+                StrokeWidth = 4f,
+                PathEffect = SKPathEffect.CreateDash(new float[] { 8, 4 }, 0),
                 IsAntialias = true
             };
             canvas.DrawRect(x, y, w, h, borderPaint);
+
+            // 內層彩色邊框（保留 ROI 識別色，疊在黑框內側）
+            using var innerColorPaint = new SKPaint
+            {
+                Color = roi.BorderColor,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = 1.5f,
+                PathEffect = SKPathEffect.CreateDash(new float[] { 8, 4 }, 0),
+                IsAntialias = true
+            };
+            canvas.DrawRect(x, y, w, h, innerColorPaint);
 
             // ROI number label at top-left
             using var indexPaint = new SKPaint
@@ -783,7 +794,6 @@ public class HeatmapControl : SKElement
 
             // Dark semi-transparent background for the label
             float bgPadX = 6, bgPadY = 4;
-            float totalLabelH = fontSize + 12; // main + frame line
             using var bgPaint = new SKPaint
             {
                 Color = new SKColor(0, 0, 0, 160),
@@ -791,24 +801,10 @@ public class HeatmapControl : SKElement
             };
             float bgW = Math.Max(labelTextW, 60) + bgPadX * 2;
             canvas.DrawRoundRect(cx - bgW / 2, cy - fontSize / 2 - bgPadY,
-                bgW, totalLabelH + bgPadY * 2, 4, 4, bgPaint);
+                bgW, fontSize + bgPadY * 2, 4, 4, bgPaint);
 
-            // Main force text
+            // Main force text (Frame info removed per UI spec)
             canvas.DrawText(roi.Label, cx, cy + fontSize * 0.35f, forcePaint);
-
-            // Frame info text below force label
-            if (frame != null)
-            {
-                using var framePaint = new SKPaint
-                {
-                    Color = new SKColor(200, 200, 200),
-                    TextSize = Math.Max(fontSize * 0.5f, 10),
-                    IsAntialias = true,
-                    TextAlign = SKTextAlign.Center,
-                    Typeface = SKTypeface.FromFamilyName("Consolas")
-                };
-                canvas.DrawText($"F:{frame.FrameIndex}", cx, cy + fontSize * 0.35f + framePaint.TextSize + 2, framePaint);
-            }
         }
     }
 
@@ -972,9 +968,9 @@ public class HeatmapControl : SKElement
         float statsX = _mapOffsetX + mapSize + 80;
         float statsY = _mapOffsetY + 4;
 
-        // ── 面板背景 ──
-        float panelW = 140;
-        float panelH = Math.Min(mapSize - 8, 460);
+        // ── 面板背景（字體放大、面板加寬 to 175px）──
+        float panelW = 175;
+        float panelH = Math.Min(mapSize - 8, 540);
         using var bgPaint = new SKPaint
         {
             Color = new SKColor(245, 245, 250),
@@ -990,15 +986,15 @@ public class HeatmapControl : SKElement
         };
         canvas.DrawRoundRect(statsX - 6, statsY - 6, panelW, panelH, 6, 6, borderPaint);
 
-        // ── 標題 ──
+        // ── 標題（17pt 加粗）──
         using var titlePaint = new SKPaint
         {
             Color = new SKColor(43, 87, 151),
-            TextSize = 14,
+            TextSize = 17,
             IsAntialias = true,
             Typeface = CjkBoldTypeface
         };
-        canvas.DrawText(LocalizationService.T("Heatmap.RealTimeStats"), statsX, statsY + 14, titlePaint);
+        canvas.DrawText(LocalizationService.T("Heatmap.RealTimeStats"), statsX, statsY + 17, titlePaint);
 
         // 標題底線
         using var linePaint = new SKPaint
@@ -1007,79 +1003,79 @@ public class HeatmapControl : SKElement
             Style = SKPaintStyle.Stroke,
             StrokeWidth = 1
         };
-        canvas.DrawLine(statsX, statsY + 20, statsX + panelW - 16, statsY + 20, linePaint);
+        canvas.DrawLine(statsX, statsY + 24, statsX + panelW - 16, statsY + 24, linePaint);
 
-        // ── 統計數據列 ──
+        // ── 統計數據列（label 14pt / value 24pt / unit 15pt）──
         using var labelPaint = new SKPaint
         {
             Color = new SKColor(90, 90, 100),
-            TextSize = 12,
+            TextSize = 14,
             IsAntialias = true,
             Typeface = CjkTypeface
         };
         using var valuePaint = new SKPaint
         {
             Color = new SKColor(20, 20, 20),
-            TextSize = 20,
+            TextSize = 24,
             IsAntialias = true,
             Typeface = CjkBoldTypeface
         };
         using var unitPaint = new SKPaint
         {
             Color = new SKColor(110, 110, 120),
-            TextSize = 13,
+            TextSize = 15,
             IsAntialias = true,
             Typeface = CjkTypeface
         };
 
-        float y = statsY + 40;
-        float lineSpacing = 54;
+        float y = statsY + 48;
+        float lineSpacing = 64;
 
         // ── Peak ──
         canvas.DrawText(LocalizationService.T("Heatmap.Peak"), statsX, y, labelPaint);
-        y += 22;
+        y += 26;
         canvas.DrawText($"{frame.PeakPressureGrams:F0}", statsX, y, valuePaint);
         canvas.DrawText(" gf", statsX + valuePaint.MeasureText($"{frame.PeakPressureGrams:F0}") + 2, y, unitPaint);
-        y += lineSpacing - 22;
+        y += lineSpacing - 26;
 
         // ── Total Force (顯示為 kg) ──
         canvas.DrawText(LocalizationService.T("Heatmap.TotalForce"), statsX, y, labelPaint);
-        y += 22;
+        y += 26;
         double totalKg = frame.TotalForceGrams / 1000.0;
         string totalStr = totalKg >= 1 ? $"{totalKg:F2}" : $"{frame.TotalForceGrams:F0}";
         string totalUnit = totalKg >= 1 ? " kg" : " gf";
         canvas.DrawText(totalStr, statsX, y, valuePaint);
         canvas.DrawText(totalUnit, statsX + valuePaint.MeasureText(totalStr) + 2, y, unitPaint);
-        y += lineSpacing - 22;
+        y += lineSpacing - 26;
 
         // ── Contact Area ──
         canvas.DrawText(LocalizationService.T("Heatmap.ForceArea"), statsX, y, labelPaint);
-        y += 22;
+        y += 26;
         canvas.DrawText($"{frame.ContactAreaMm2:F1}", statsX, y, valuePaint);
         canvas.DrawText(" mm²", statsX + valuePaint.MeasureText($"{frame.ContactAreaMm2:F1}") + 2, y, unitPaint);
-        y += lineSpacing - 22;
+        y += lineSpacing - 26;
 
         // ── Average ──
         canvas.DrawText(LocalizationService.T("Heatmap.Average"), statsX, y, labelPaint);
-        y += 22;
+        y += 26;
         canvas.DrawText($"{frame.AveragePressureGrams:F0}", statsX, y, valuePaint);
         canvas.DrawText(" gf", statsX + valuePaint.MeasureText($"{frame.AveragePressureGrams:F0}") + 2, y, unitPaint);
-        y += lineSpacing - 22;
+        y += lineSpacing - 26;
 
         // ── Active Points ──
         canvas.DrawText(LocalizationService.T("Heatmap.ActivePoints"), statsX, y, labelPaint);
-        y += 22;
+        y += 26;
         canvas.DrawText($"{frame.ActivePointCount}", statsX, y, valuePaint);
         canvas.DrawText($" / 1600", statsX + valuePaint.MeasureText($"{frame.ActivePointCount}") + 2, y, unitPaint);
-        y += lineSpacing - 22;
+        y += lineSpacing - 26;
 
         // ── Center of Pressure ──
         canvas.DrawText(LocalizationService.T("Heatmap.CoPmm"), statsX, y, labelPaint);
-        y += 22;
+        y += 26;
         using var copPaint = new SKPaint
         {
             Color = new SKColor(220, 20, 20),
-            TextSize = 16,
+            TextSize = 19,
             IsAntialias = true,
             Typeface = CjkBoldTypeface
         };
@@ -1127,7 +1123,7 @@ public class HeatmapControl : SKElement
             _ => ""
         };
 
-        string text = $"{modeText} | Frame #{frame.FrameIndex} | " +
+        string text = $"{modeText} | " +
                       $"Peak: {frame.PeakPressureGrams:F0}g @({frame.PeakRow + 1},{frame.PeakCol + 1}) | " +
                       $"Total: {frame.TotalForceGrams:F0}g | " +
                       $"Active: {frame.ActivePointCount} pts | " +
