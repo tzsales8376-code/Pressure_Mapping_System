@@ -151,6 +151,22 @@ public partial class SettingsWindow : Window
         TcfNoiseSupSlider.Value = 50;
     }
 
+    private void Save_Click(object sender, RoutedEventArgs e)
+    {
+        var settings = new UserSettings
+        {
+            FilterMode = (int)_vm.FilterMode,
+            TcfResponseMs = _vm.TcfResponseMs,
+            TcfNoiseSuppression = _vm.TcfNoiseSuppression,
+            DisplayThresholdGrams = _vm.DisplayThreshold,
+            NoiseFloorGrams = _vm.NoiseFloorGrams,
+            NoiseFilterPercent = _vm.NoiseFilterPercent,
+        };
+        settings.Save();
+        MessageBox.Show("設定已儲存，下次啟動時將自動載入。", "儲存成功",
+            MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
     private void Close_Click(object sender, RoutedEventArgs e)
     {
         Close();

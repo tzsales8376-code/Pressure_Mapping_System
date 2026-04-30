@@ -362,7 +362,7 @@
                     <!-- ROI Analysis panel removed (按需求保留畫框能力但不顯示分析面板) -->
 
                     <!-- Comparison -->
-                    <GroupBox Header="比對分析 / Comparison">
+                    <GroupBox Header="比對分析">
                         <StackPanel>
                             <!-- 模式說明 -->
                             <Border Background="#FF2D2D40" Padding="6,4" Margin="2,2,2,4"

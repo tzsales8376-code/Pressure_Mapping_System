@@ -335,6 +335,21 @@ public class MainViewModel : ViewModelBase, IDisposable
     };
 
     /// <summary>
+    /// 從 JSON 載入使用者已儲存的設定，套用到對應欄位。
+    /// 僅在建構子中呼叫一次，直接寫 backing field 避免觸發 RebuildSignalFilter。
+    /// </summary>
+    private void LoadUserSettings()
+    {
+        var s = UserSettings.LoadOrCreateDefault();
+        _filterMode = (FilterMode)Math.Clamp(s.FilterMode, 0, 1);
+        _tcfResponseMs = Math.Clamp(s.TcfResponseMs, 30, 500);
+        _tcfNoiseSuppression = Math.Clamp(s.TcfNoiseSuppression, 0, 100);
+        _displayThreshold = s.DisplayThresholdGrams > 0 ? s.DisplayThresholdGrams : SensorConfig.MaxForceGrams;
+        _noiseFloorGrams = Math.Clamp(s.NoiseFloorGrams, 5, 100);
+        _noiseFilterPercent = Math.Clamp(s.NoiseFilterPercent, 0, 50);
+    }
+
+    /// <summary>
     /// 內插層級：1=原始(1×1), 3=3×3內插, 5=5×5內插
     /// 僅影響視覺渲染解析度，不影響力值計算
     /// </summary>
@@ -527,7 +542,10 @@ public class MainViewModel : ViewModelBase, IDisposable
         catch { }
         _pdfReportService = new PdfReportService(_exportService, _exportFolder, logoPath);
 
-        // Initialize signal filter with default (Legacy)
+        // 載入使用者已儲存的設定（若有）
+        LoadUserSettings();
+
+        // Initialize signal filter with current settings (may have been overridden by saved settings)
         _signalFilter = SignalFilterFactory.Create(_filterMode, BuildFilterParameters());
 
         // Wire events
