@@ -1065,7 +1065,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         }
         try
         {
-            var window = new ComparisonWindow(SnapshotA, SnapshotB, _exportFolder)
+            var window = new ComparisonWindow(SnapshotA, SnapshotB, _exportFolder, _pdfReportService)
             {
                 Owner = Application.Current.MainWindow
             };
