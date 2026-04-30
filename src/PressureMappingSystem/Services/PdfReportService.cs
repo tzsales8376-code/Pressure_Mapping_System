@@ -647,6 +647,21 @@ public class PdfReportService
                     $"Pass-zone: {r.Config.PassZoneThreshold:F0}")
                     .FontSize(8).FontColor("#888888");
             });
+
+            // Critical Veto 提示（觸發時才顯示）
+            if (r.VetoTriggered)
+            {
+                col.Item().PaddingTop(4).Background("#E53935").Padding(10).Column(vetoCol =>
+                {
+                    vetoCol.Item().Text("⚠ Critical Veto Triggered / 一票否決")
+                        .Bold().FontSize(12).FontColor(Colors.White);
+                    vetoCol.Item().PaddingTop(2).Text(r.VetoReason)
+                        .FontSize(10).FontColor(Colors.White);
+                    vetoCol.Item().PaddingTop(4).Text(
+                        "說明：即使加權總分達標，當關鍵指標嚴重失常時，依品管實務一票否決原則仍判 FAIL。")
+                        .FontSize(8).FontColor("#FFE0E0").Italic();
+                });
+            }
         });
     }
 

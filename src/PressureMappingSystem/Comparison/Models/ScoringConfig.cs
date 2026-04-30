@@ -51,6 +51,7 @@ public class ScoringConfig
         PositionFactor = 0.05,
         WeightTolerancePercent = 5.0,
         MaxCopShiftMm = 2.0,
+        WeightCriticalMultiplier = 2.0,
     };
 
     // ─────────────────────────────────────────
@@ -64,6 +65,7 @@ public class ScoringConfig
         AreaFactor = 0.05,
         WeightTolerancePercent = 10.0,  // 不同物件容差寬鬆
         MaxCopShiftMm = 5.0,
+        WeightCriticalMultiplier = 2.0,
     };
 
     // ─────────────────────────────────────────
@@ -95,12 +97,14 @@ public class ScoringConfig
                         AreaFactor = 0.50, ShapeFactor = 0.30,
                         WeightFactor = 0.15, PositionFactor = 0.05,
                         WeightTolerancePercent = 5.0, MaxCopShiftMm = 2.0,
+                        WeightCriticalMultiplier = 2.0,
                     };
                     loaded.DifferentObjectProfile ??= new ScenarioProfile
                     {
                         WeightFactor = 0.65, ShapeFactor = 0.25,
                         PositionFactor = 0.05, AreaFactor = 0.05,
                         WeightTolerancePercent = 10.0, MaxCopShiftMm = 5.0,
+                        WeightCriticalMultiplier = 2.0,
                     };
                     return loaded;
                 }
@@ -143,7 +147,7 @@ public class ScoringConfig
 }
 
 /// <summary>
-/// 單一情境的權重 + 容差設定
+/// 單一情境的權重 + 容差設定 + critical veto 規則
 /// </summary>
 public class ScenarioProfile
 {
@@ -157,6 +161,27 @@ public class ScenarioProfile
     public double WeightTolerancePercent { get; set; }
     public double MaxCopShiftMm { get; set; }
 
+    // ── Critical Veto（一票否決）──
+    /// <summary>
+    /// 重量誤差 critical 倍率（× WeightTolerancePercent）。
+    /// 例如 = 2.0、WeightTolerancePercent = 5% 時，重量誤差 > 10% 直接 FAIL（不論加權總分多少）。
+    /// 設為 0 或負值表示停用此 veto 規則。
+    /// 業界實務：成熟品管常見 2× 倍率（容差到頂仍可接受、超過 2× 直接視為嚴重異常）。
+    /// </summary>
+    public double WeightCriticalMultiplier { get; set; } = 2.0;
+
     [JsonIgnore]
     public double WeightSum => WeightFactor + ShapeFactor + PositionFactor + AreaFactor;
+
+    /// <summary>
+    /// 重量 critical 觸發閾值（%）= WeightTolerancePercent × WeightCriticalMultiplier
+    /// </summary>
+    [JsonIgnore]
+    public double WeightCriticalPercent => WeightTolerancePercent * WeightCriticalMultiplier;
+
+    /// <summary>
+    /// 此 profile 是否啟用重量 veto 機制
+    /// </summary>
+    [JsonIgnore]
+    public bool IsWeightVetoEnabled => WeightCriticalMultiplier > 0;
 }

@@ -18,6 +18,7 @@ public class ScoreCardControl : UserControl
     private readonly TextBlock _scoreUnit;
     private readonly TextBlock _rawScoreNote;
     private readonly TextBlock _scenarioNote;
+    private readonly TextBlock _vetoNote;
     private readonly Border _passLabel;
     private readonly TextBlock _passText;
     private readonly StackPanel _breakdown;
@@ -112,6 +113,22 @@ public class ScoreCardControl : UserControl
         };
         stack.Children.Add(_scenarioNote);
 
+        // ── Veto 警告 (critical 觸發時才顯示，紅底白字)──
+        _vetoNote = new TextBlock
+        {
+            FontSize = 12,
+            FontWeight = FontWeights.Bold,
+            Foreground = Brushes.White,
+            Background = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35)),
+            FontFamily = new FontFamily("Microsoft JhengHei"),
+            Padding = new Thickness(8, 4, 8, 4),
+            Margin = new Thickness(0, 6, 0, 0),
+            TextWrapping = TextWrapping.Wrap,
+            Visibility = Visibility.Collapsed,
+            Text = ""
+        };
+        stack.Children.Add(_vetoNote);
+
         // ── 分項條 ──
         _breakdown = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
         stack.Children.Add(_breakdown);
@@ -127,6 +144,7 @@ public class ScoreCardControl : UserControl
             _passText.Text = "—";
             _rawScoreNote.Visibility = Visibility.Collapsed;
             _scenarioNote.Visibility = Visibility.Collapsed;
+            _vetoNote.Visibility = Visibility.Collapsed;
             _breakdown.Children.Clear();
             return;
         }
@@ -156,6 +174,17 @@ public class ScoreCardControl : UserControl
             _passLabel.Background = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35));
         }
 
+        // ── Veto 警告（critical 觸發時顯示，並提供解釋）──
+        if (r.VetoTriggered)
+        {
+            _vetoNote.Text = $"⚠ Critical Veto 觸發：{r.VetoReason}";
+            _vetoNote.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            _vetoNote.Visibility = Visibility.Collapsed;
+        }
+
         // ── 應用情境資訊 ──
         string scenarioLabel = r.AppliedScenario switch
         {
@@ -165,7 +194,6 @@ public class ScoreCardControl : UserControl
         };
         if (!string.IsNullOrEmpty(r.AutoJudgmentReason))
         {
-            // 自動模式 - 顯示判定理由
             _scenarioNote.Text = $"📐 自動判定 → {scenarioLabel}    [{r.AutoJudgmentReason}]";
         }
         else

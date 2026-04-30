@@ -70,6 +70,16 @@ public class ComparisonResult
     /// <summary>自動判定模式時的判定理由（顯示用，例如「IoU=0.78 ≥ 0.6 → 相似待測物」）</summary>
     public string AutoJudgmentReason { get; set; } = "";
 
+    // ── Critical Veto（一票否決機制）──
+    /// <summary>
+    /// 是否觸發 critical veto：當某個關鍵指標嚴重失常時，
+    /// 不論加權總分多高都強制判 FAIL（業界品管實務）。
+    /// </summary>
+    public bool VetoTriggered { get; set; }
+
+    /// <summary>Veto 觸發原因（顯示給使用者看的中文說明）</summary>
+    public string VetoReason { get; set; } = "";
+
     /// <summary>計算過程的警告（資料異常時）</summary>
     public List<string> Warnings { get; set; } = new();
 }

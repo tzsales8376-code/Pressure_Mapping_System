@@ -238,8 +238,33 @@ public static class SnapshotComparisonService
         r.IsInPassZone = r.RawScore >= r.Config.PassZoneThreshold;
         r.FinalScore = r.IsInPassZone ? 100.0 : r.RawScore;
 
-        // 合格判定
-        r.IsPass = r.FinalScore >= r.Config.PassThreshold;
+        // ── Critical Veto 一票否決機制 ──
+        // 即使加權總分高，若關鍵指標嚴重失常，仍強制 FAIL
+        // 這對應業界品管「重量超過 2× 容差視為嚴重異常」的實務做法
+        CheckCriticalVeto(r, profile);
+
+        // 合格判定（必須同時：加權總分達標 AND 沒觸發 veto）
+        r.IsPass = r.FinalScore >= r.Config.PassThreshold && !r.VetoTriggered;
+    }
+
+    /// <summary>
+    /// 檢查 critical veto 條件，若觸發則設置 VetoTriggered + VetoReason。
+    ///
+    /// 業界實務：當「重量誤差超過 N 倍容差」時，無論其他分項多好都應視為失敗。
+    /// 例如：兩張壓力分布形狀完全相同（IoU=1, SSIM=1），但總重量差 30%，
+    /// 在物理意義上不應被判 PASS（必有量測或樣品問題）。
+    /// </summary>
+    private static void CheckCriticalVeto(ComparisonResult r, ScenarioProfile profile)
+    {
+        // Weight veto：誤差超過 critical 倍率
+        if (profile.IsWeightVetoEnabled && r.WeightErrorPercent > profile.WeightCriticalPercent)
+        {
+            r.VetoTriggered = true;
+            r.VetoReason = $"重量誤差 {r.WeightErrorPercent:F2}% 超過 critical 容差 ±{profile.WeightCriticalPercent:F1}% " +
+                          $"({profile.WeightCriticalMultiplier:F1}× 容差規格)，依品管實務一票否決";
+        }
+
+        // 未來若要加 Area / Position veto 在這裡擴充
     }
 
     // ─────────────────────────────────────────────────────
