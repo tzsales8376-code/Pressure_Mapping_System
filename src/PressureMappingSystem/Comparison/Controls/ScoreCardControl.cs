@@ -17,6 +17,7 @@ public class ScoreCardControl : UserControl
     private readonly TextBlock _scoreText;
     private readonly TextBlock _scoreUnit;
     private readonly TextBlock _rawScoreNote;
+    private readonly TextBlock _scenarioNote;
     private readonly Border _passLabel;
     private readonly TextBlock _passText;
     private readonly StackPanel _breakdown;
@@ -99,6 +100,18 @@ public class ScoreCardControl : UserControl
 
         stack.Children.Add(scoreRow);
 
+        // ── 應用情境資訊 (PASS/FAIL 下方一行說明)──
+        _scenarioNote = new TextBlock
+        {
+            FontSize = 12,
+            Foreground = textSecondary,
+            FontFamily = new FontFamily("Microsoft JhengHei"),
+            Margin = new Thickness(0, 4, 0, 0),
+            Visibility = Visibility.Collapsed,
+            Text = ""
+        };
+        stack.Children.Add(_scenarioNote);
+
         // ── 分項條 ──
         _breakdown = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
         stack.Children.Add(_breakdown);
@@ -113,6 +126,7 @@ public class ScoreCardControl : UserControl
             _scoreText.Text = "—";
             _passText.Text = "—";
             _rawScoreNote.Visibility = Visibility.Collapsed;
+            _scenarioNote.Visibility = Visibility.Collapsed;
             _breakdown.Children.Clear();
             return;
         }
@@ -142,19 +156,38 @@ public class ScoreCardControl : UserControl
             _passLabel.Background = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35));
         }
 
-        // ── 四個分項小條 ──
+        // ── 應用情境資訊 ──
+        string scenarioLabel = r.AppliedScenario switch
+        {
+            ScoringScenario.SimilarObject => "情境 1：相似待測物（面積為主）",
+            ScoringScenario.DifferentObject => "情境 2：不同待測物（重量為主）",
+            _ => "未知"
+        };
+        if (!string.IsNullOrEmpty(r.AutoJudgmentReason))
+        {
+            // 自動模式 - 顯示判定理由
+            _scenarioNote.Text = $"📐 自動判定 → {scenarioLabel}    [{r.AutoJudgmentReason}]";
+        }
+        else
+        {
+            _scenarioNote.Text = $"📐 使用者選擇 → {scenarioLabel}";
+        }
+        _scenarioNote.Visibility = Visibility.Visible;
+
+        // ── 四個分項小條（用 AppliedProfile 而非 Config.* 舊欄位）──
+        var profile = r.AppliedProfile;
         _breakdown.Children.Clear();
         AddBreakdownRow("重量準度 (Weight, Total Force)",
-            r.WeightScore, r.Config.WeightFactor, r.Config.WeightSum,
-            $"誤差 {r.WeightErrorPercent:F2}% / 容差 {r.Config.WeightTolerancePercent:F1}%");
+            r.WeightScore, profile.WeightFactor, profile.WeightSum,
+            $"誤差 {r.WeightErrorPercent:F2}% / 容差 ±{profile.WeightTolerancePercent:F1}%");
         AddBreakdownRow("形狀相似度 (Shape, SSIM)",
-            r.ShapeScore, r.Config.ShapeFactor, r.Config.WeightSum,
+            r.ShapeScore, profile.ShapeFactor, profile.WeightSum,
             $"SSIM {r.Ssim:F4}");
         AddBreakdownRow("位置吻合 (Position, CoP)",
-            r.PositionScore, r.Config.PositionFactor, r.Config.WeightSum,
-            $"偏移 {r.CoPShiftMm:F2} mm / 上限 {r.Config.MaxCopShiftMm:F1} mm");
+            r.PositionScore, profile.PositionFactor, profile.WeightSum,
+            $"偏移 {r.CoPShiftMm:F2} mm / 上限 {profile.MaxCopShiftMm:F1} mm");
         AddBreakdownRow("受壓面積 (Area, IoU)",
-            r.AreaScore, r.Config.AreaFactor, r.Config.WeightSum,
+            r.AreaScore, profile.AreaFactor, profile.WeightSum,
             $"IoU {r.IoU:F4}");
     }
 

@@ -15,6 +15,7 @@ public partial class ComparisonWindow : Window
     private readonly string _exportFolder;
     private readonly ScoringConfig _config;
     private ComparisonResult? _result;
+    private bool _initializing = true;
 
     public ComparisonWindow(CapturedSnapshot a, CapturedSnapshot b, string? exportFolder = null)
     {
@@ -28,6 +29,9 @@ public partial class ComparisonWindow : Window
         // 載入評分配置（外部 JSON）
         _config = ScoringConfig.LoadOrCreateDefault();
         ConfigSourceText.Text = $"設定檔: {ScoringConfig.GetDefaultPath()}";
+
+        // 預設選中項對應 JSON 內 Scenario
+        ScenarioCombo.SelectedIndex = (int)_config.Scenario;
 
         // 統一色階：取兩者最大值
         double scaleMax = Math.Max(a.Peak, b.Peak);
@@ -49,6 +53,15 @@ public partial class ComparisonWindow : Window
         HeatmapB.ShowLegend = false;
         InfoTextB.Text = FormatSnapshotInfo(b);
 
+        _initializing = false;
+        Recompute();
+    }
+
+    private void ScenarioCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_initializing) return;
+        // 把使用者選的覆蓋進 _config 然後重算（不寫回 JSON、保持一次性）
+        _config.Scenario = (ScoringScenario)ScenarioCombo.SelectedIndex;
         Recompute();
     }
 
@@ -142,10 +155,15 @@ public partial class ComparisonWindow : Window
         sb.AppendLine();
 
         sb.AppendLine("[Scoring Config]");
-        sb.AppendLine($"  Weights: weight={_result.Config.WeightFactor:F2}, shape={_result.Config.ShapeFactor:F2}, " +
-                      $"position={_result.Config.PositionFactor:F2}, area={_result.Config.AreaFactor:F2}");
-        sb.AppendLine($"  Tolerances: weight ±{_result.Config.WeightTolerancePercent:F1}%, " +
-                      $"max CoP shift {_result.Config.MaxCopShiftMm:F2}mm");
+        sb.AppendLine($"  Scenario (selected) : {_result.Config.Scenario}");
+        sb.AppendLine($"  Scenario (applied)  : {_result.AppliedScenario}");
+        if (!string.IsNullOrEmpty(_result.AutoJudgmentReason))
+            sb.AppendLine($"  Auto judgment       : {_result.AutoJudgmentReason}");
+        var p = _result.AppliedProfile;
+        sb.AppendLine($"  Weights: weight={p.WeightFactor:F2}, shape={p.ShapeFactor:F2}, " +
+                      $"position={p.PositionFactor:F2}, area={p.AreaFactor:F2}");
+        sb.AppendLine($"  Tolerances: weight ±{p.WeightTolerancePercent:F1}%, " +
+                      $"max CoP shift {p.MaxCopShiftMm:F2}mm");
         sb.AppendLine($"  Thresholds: pass-zone {_result.Config.PassZoneThreshold:F0}, " +
                       $"pass {_result.Config.PassThreshold:F0}");
         sb.AppendLine();

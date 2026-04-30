@@ -57,6 +57,18 @@
                                FontSize="11" Foreground="{StaticResource TextSecondary}"/>
                 </StackPanel>
 
+                <!-- 情境選擇 (中欄) -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="評分情境：" Foreground="{StaticResource TextPrimary}" FontSize="13"
+                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <ComboBox x:Name="ScenarioCombo" Width="280" FontSize="13"
+                              SelectionChanged="ScenarioCombo_SelectionChanged">
+                        <ComboBoxItem Content="自動（依 IoU 判定）"/>
+                        <ComboBoxItem Content="情境 1：相似待測物（面積為主）"/>
+                        <ComboBoxItem Content="情境 2：不同待測物（重量為主）"/>
+                    </ComboBox>
+                </StackPanel>
+
                 <StackPanel Grid.Column="2" HorizontalAlignment="Right">
                     <TextBlock x:Name="ConfigSourceText" Text=""
                                FontSize="10" Foreground="{StaticResource TextSecondary}"

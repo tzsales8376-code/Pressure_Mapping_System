@@ -3,34 +3,34 @@ using PressureMappingSystem.Comparison.Models;
 namespace PressureMappingSystem.Comparison.Services;
 
 /// <summary>
-/// 兩張快照的四分項加權評分。
+/// 雙情境評分核心服務 v2。
 ///
-/// 業界依據：
-///   1. 重量準度（Weight）：基於 Total Force 相對誤差，線性衰減
-///      formula: WeightScore = 100 × max(0, 1 − |ErrPercent| / Tolerance)
+/// 設計：
+///   1. 依 ScoringConfig.Scenario 決定用哪套 ScenarioProfile
+///      - Auto: 依 IoU 自動判斷
+///      - SimilarObject: 受壓面積為主（重複量測場景）
+///      - DifferentObject: 總重量為主（不同樣品同重場景）
 ///
-///   2. 形狀相似度（Shape）：SSIM (Structural Similarity Index Measure)
-///      Wang, Z. et al. (2004) "Image quality assessment: From error visibility to structural similarity"
-///      IEEE TIP 業界視覺品管標準
+///   2. 各分項計算「相似度」（0~1），再用業界非線性遞減曲線轉換為分數（0~100）
+///      曲線分段：
+///         85~100% → 95~100  (saturation, slope=1/3)
+///         70~85%  → 80~95   (gentle decline, slope=1)
+///         50~70%  → 50~80   (steep decline, slope=1.5)
+///         30~50%  → 0~50    (steep decline, slope=2.5)
+///         < 30%   → 0
+///      這比純線性更貼近品管直覺：合格率 70% 拿 80 分，而非 70 分。
 ///
-///   3. 位置吻合（Position）：CoP (Center of Pressure) 偏移
-///      formula: PositionScore = 100 × max(0, 1 − Shift / MaxAllowedShift)
-///
-///   4. 面積吻合（Area）：IoU (Intersection over Union)
-///      formula: IoU = |A ∩ B| / |A ∪ B| (受壓點集合)
-///      AreaScore = 100 × IoU
-///
-/// 加權後 RawScore = ΣWi × Si；FinalScore 進入合格區（≥95）飽和為 100。
+///   3. 加權合成 RawScore，≥ PassZoneThreshold 飽和為 100。
 /// </summary>
 public static class SnapshotComparisonService
 {
     private const int Rows = 40;
     private const int Cols = 40;
-    private const double NoiseFloor = 5.0;  // 視為「有受壓」的最低值
+    private const double NoiseFloor = 5.0;
 
     public static ComparisonResult Compare(
-        CapturedSnapshot reference,  // A = 黃金樣品
-        CapturedSnapshot dut,        // B = 待測
+        CapturedSnapshot reference,
+        CapturedSnapshot dut,
         ScoringConfig config)
     {
         var result = new ComparisonResult { Config = config };
@@ -41,149 +41,213 @@ public static class SnapshotComparisonService
             return result;
         }
 
-        // ── 計算各種差值 ──
-        double sumAbsDiff = 0;
-        double maxAbs = 0;
-        for (int r = 0; r < Rows; r++)
-        {
-            for (int c = 0; c < Cols; c++)
-            {
-                double d = Math.Abs(reference.PressureGrams[r, c] - dut.PressureGrams[r, c]);
-                result.AbsDiff[r, c] = d;
-                sumAbsDiff += d;
-                if (d > maxAbs) maxAbs = d;
-            }
-        }
-        result.MAE = sumAbsDiff / (Rows * Cols);
-        result.MaxAbsDiff = maxAbs;
+        // ─── 1. 計算所有底層指標（與情境無關，全部都算）───
+        ComputeBasicMetrics(reference, dut, result);
 
-        // ── 摘要差 ──
-        result.PeakDelta = dut.Peak - reference.Peak;
-        result.TotalForceDelta = dut.TotalForce - reference.TotalForce;
-        result.ActivePointsDelta = dut.ActivePoints - reference.ActivePoints;
-        result.ContactAreaDelta = dut.ContactArea - reference.ContactArea;
+        // ─── 2. 決定 AppliedScenario ───
+        ResolveScenario(config, result);
 
-        double dx = reference.CoPX - dut.CoPX;
-        double dy = reference.CoPY - dut.CoPY;
-        // CoP 是 row/col index，pitch 0.5mm 換算成 mm
-        result.CoPShiftMm = Math.Sqrt(dx * dx + dy * dy) * 0.5;
+        // ─── 3. 取出對應 profile ───
+        var profile = config.ResolveProfile(result.AppliedScenario);
+        result.AppliedProfile = profile;
 
-        // ── 1. WeightScore（Total Force 準度） ──
-        result.WeightScore = ComputeWeightScore(reference, dut, config, result);
+        // ─── 4. 各分項相似度 → 分數轉換 ───
+        // Weight 分項：用 Tolerance 線性衰減（業界儀器校驗常用做法、不適合套非線性曲線）
+        result.WeightScore = ComputeWeightScore(reference, dut, profile, result);
 
-        // ── 2. ShapeScore（SSIM） ──
-        result.Ssim = ComputeSsim(reference.PressureGrams, dut.PressureGrams);
-        result.ShapeScore = Math.Clamp(result.Ssim * 100.0, 0, 100);
+        // Shape / Area / Position：用「業界非線性遞減曲線」
+        // SSIM ∈ [0, 1]，視為相似度
+        result.ShapeScore = SimilarityToScore(result.Ssim);
 
-        // ── 3. PositionScore（CoP shift） ──
-        result.PositionScore = ComputePositionScore(result.CoPShiftMm, config);
+        // IoU ∈ [0, 1]，視為相似度
+        result.AreaScore = SimilarityToScore(result.IoU);
 
-        // ── 4. AreaScore（IoU） ──
-        result.IoU = ComputeIoU(reference.PressureGrams, dut.PressureGrams);
-        result.AreaScore = Math.Clamp(result.IoU * 100.0, 0, 100);
+        // Position：CoP 偏移轉「相似度」（偏移 0 → 1.0，偏移 = MaxAllowed → 0.0）
+        double positionSimilarity = profile.MaxCopShiftMm > 1e-6
+            ? Math.Clamp(1.0 - result.CoPShiftMm / profile.MaxCopShiftMm, 0, 1)
+            : (result.CoPShiftMm < 0.01 ? 1.0 : 0.0);
+        result.PositionScore = SimilarityToScore(positionSimilarity);
 
-        // ── 加權平均：RawScore ──
-        // 為防範使用者在 JSON 裡權重和 ≠ 1，正規化一次
-        double sum = config.WeightSum;
-        if (sum < 1e-6)
-        {
-            result.Warnings.Add("ScoringConfig: weights sum to zero, using equal 0.25 each");
-            result.RawScore = (result.WeightScore + result.ShapeScore + result.PositionScore + result.AreaScore) / 4.0;
-        }
-        else
-        {
-            double w = config.WeightFactor / sum;
-            double sh = config.ShapeFactor / sum;
-            double p = config.PositionFactor / sum;
-            double a = config.AreaFactor / sum;
-            result.RawScore = w * result.WeightScore
-                            + sh * result.ShapeScore
-                            + p * result.PositionScore
-                            + a * result.AreaScore;
-        }
-        result.RawScore = Math.Clamp(result.RawScore, 0, 100);
-
-        // ── 飽和區：≥ PassZoneThreshold 顯示 100 ──
-        result.IsInPassZone = result.RawScore >= config.PassZoneThreshold;
-        result.FinalScore = result.IsInPassZone ? 100.0 : result.RawScore;
-
-        // ── 合格判定 ──
-        result.IsPass = result.FinalScore >= config.PassThreshold;
+        // ─── 5. 加權合成 ───
+        ComputeWeightedTotal(result, profile);
 
         return result;
     }
 
     // ─────────────────────────────────────────────────────
+    private static void ComputeBasicMetrics(CapturedSnapshot a, CapturedSnapshot b, ComparisonResult r)
+    {
+        // 差值矩陣
+        double sumAbsDiff = 0, maxAbs = 0;
+        for (int row = 0; row < Rows; row++)
+        {
+            for (int col = 0; col < Cols; col++)
+            {
+                double d = Math.Abs(a.PressureGrams[row, col] - b.PressureGrams[row, col]);
+                r.AbsDiff[row, col] = d;
+                sumAbsDiff += d;
+                if (d > maxAbs) maxAbs = d;
+            }
+        }
+        r.MAE = sumAbsDiff / (Rows * Cols);
+        r.MaxAbsDiff = maxAbs;
+
+        // 摘要差
+        r.PeakDelta = b.Peak - a.Peak;
+        r.TotalForceDelta = b.TotalForce - a.TotalForce;
+        r.ActivePointsDelta = b.ActivePoints - a.ActivePoints;
+        r.ContactAreaDelta = b.ContactArea - a.ContactArea;
+
+        double dx = a.CoPX - b.CoPX;
+        double dy = a.CoPY - b.CoPY;
+        r.CoPShiftMm = Math.Sqrt(dx * dx + dy * dy) * 0.5;
+
+        // SSIM + IoU
+        r.Ssim = ComputeSsim(a.PressureGrams, b.PressureGrams);
+        r.IoU = ComputeIoU(a.PressureGrams, b.PressureGrams);
+
+        // Weight error %
+        if (a.TotalForce > 1e-6)
+            r.WeightErrorPercent = Math.Abs(b.TotalForce - a.TotalForce) / a.TotalForce * 100.0;
+        else
+            r.WeightErrorPercent = 0;
+    }
+
+    private static void ResolveScenario(ScoringConfig config, ComparisonResult r)
+    {
+        if (config.Scenario != ScoringScenario.Auto)
+        {
+            r.AppliedScenario = config.Scenario;
+            r.AutoJudgmentReason = "";
+            return;
+        }
+
+        // 自動判斷：IoU ≥ AutoThresholdIou 為相似待測物
+        if (r.IoU >= config.AutoThresholdIou)
+        {
+            r.AppliedScenario = ScoringScenario.SimilarObject;
+            r.AutoJudgmentReason = $"IoU={r.IoU:F2} ≥ {config.AutoThresholdIou:F2} → 相似待測物";
+        }
+        else
+        {
+            r.AppliedScenario = ScoringScenario.DifferentObject;
+            r.AutoJudgmentReason = $"IoU={r.IoU:F2} < {config.AutoThresholdIou:F2} → 不同待測物";
+        }
+    }
+
     private static double ComputeWeightScore(
         CapturedSnapshot a, CapturedSnapshot b,
-        ScoringConfig cfg, ComparisonResult result)
+        ScenarioProfile profile, ComparisonResult r)
     {
         if (a.TotalForce < 1e-6)
         {
-            result.Warnings.Add("Weight score: reference total force ~ 0, set to 0");
+            r.Warnings.Add("重量分數：基準總力 ~ 0、無法評分，給 0");
             return 0;
         }
 
-        double errPct = Math.Abs(b.TotalForce - a.TotalForce) / a.TotalForce * 100.0;
-        result.WeightErrorPercent = errPct;
+        // 業界做法：「±X% 內 95 分以上」線性衰減
+        // 你的需求：±5~10% 內 95+
+        double tol = profile.WeightTolerancePercent;
+        if (tol < 1e-6) return r.WeightErrorPercent < 0.01 ? 100 : 0;
 
-        if (cfg.WeightTolerancePercent < 1e-6)
-            return errPct < 0.01 ? 100 : 0;  // 極嚴格邊界
-
-        double score = 100.0 * (1.0 - errPct / cfg.WeightTolerancePercent);
-        return Math.Clamp(score, 0, 100);
-    }
-
-    private static double ComputePositionScore(double shiftMm, ScoringConfig cfg)
-    {
-        if (cfg.MaxCopShiftMm < 1e-6) return shiftMm < 0.01 ? 100 : 0;
-        double score = 100.0 * (1.0 - shiftMm / cfg.MaxCopShiftMm);
-        return Math.Clamp(score, 0, 100);
-    }
-
-    /// <summary>
-    /// IoU on active region:
-    ///   有受壓的點集合 A = {(r,c) | a[r,c] > NoiseFloor}
-    ///   有受壓的點集合 B = {(r,c) | b[r,c] > NoiseFloor}
-    ///   IoU = |A ∩ B| / |A ∪ B|
-    /// </summary>
-    private static double ComputeIoU(double[,] a, double[,] b)
-    {
-        int inter = 0, union = 0;
-        for (int r = 0; r < Rows; r++)
-            for (int c = 0; c < Cols; c++)
-            {
-                bool inA = a[r, c] > NoiseFloor;
-                bool inB = b[r, c] > NoiseFloor;
-                if (inA && inB) inter++;
-                if (inA || inB) union++;
-            }
-        if (union == 0) return 1.0;  // 兩邊都空 → 視為完全一致
-        return (double)inter / union;
+        // 在 tol 內：100 ~ 95 線性（從完美到容差邊緣）
+        // 超過 tol：95 ~ 0 線性（從容差邊緣到 2*tol）
+        double err = r.WeightErrorPercent;
+        if (err <= tol)
+        {
+            // 0 ~ tol → 100 ~ 95
+            return 100.0 - 5.0 * (err / tol);
+        }
+        else if (err <= 2 * tol)
+        {
+            // tol ~ 2*tol → 95 ~ 0
+            return 95.0 * (1.0 - (err - tol) / tol);
+        }
+        else
+        {
+            return 0;
+        }
     }
 
     /// <summary>
-    /// SSIM (Structural Similarity Index Measure)
-    /// Wang et al. 2004
+    /// 業界非線性遞減曲線（分段線性）。
+    /// 輸入：相似度 [0, 1]
+    /// 輸出：分數 [0, 100]
     ///
-    /// 全域單窗版本（簡化版）：
-    ///   μx, μy: 平均
-    ///   σx², σy²: 變異數
-    ///   σxy: 共變異數
-    ///   c1 = (k1 × L)², c2 = (k2 × L)²
-    ///   L = 動態範圍（取兩圖最大值）
-    ///   k1 = 0.01, k2 = 0.03（業界標準常數）
-    ///
-    ///   SSIM = ((2μxμy + c1)(2σxy + c2)) / ((μx² + μy² + c1)(σx² + σy² + c2))
-    ///
-    /// 全域版對「整圖結構」的判讀夠用；若客戶要求多窗 mean SSIM 可後續擴充。
+    /// 對應點：
+    ///   1.00 → 100
+    ///   0.85 → 95   (進入飽和區)
+    ///   0.70 → 80
+    ///   0.50 → 50
+    ///   0.30 → 0
+    ///   < 0.30 → 0
     /// </summary>
+    public static double SimilarityToScore(double similarity)
+    {
+        double s = Math.Clamp(similarity, 0, 1);
+
+        if (s >= 0.85)
+        {
+            // 0.85~1.00 → 95~100  (slope ≈ 33)
+            return 95.0 + (s - 0.85) / 0.15 * 5.0;
+        }
+        else if (s >= 0.70)
+        {
+            // 0.70~0.85 → 80~95   (slope = 100)
+            return 80.0 + (s - 0.70) / 0.15 * 15.0;
+        }
+        else if (s >= 0.50)
+        {
+            // 0.50~0.70 → 50~80   (slope = 150)
+            return 50.0 + (s - 0.50) / 0.20 * 30.0;
+        }
+        else if (s >= 0.30)
+        {
+            // 0.30~0.50 → 0~50    (slope = 250)
+            return (s - 0.30) / 0.20 * 50.0;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    private static void ComputeWeightedTotal(ComparisonResult r, ScenarioProfile profile)
+    {
+        double sum = profile.WeightSum;
+        if (sum < 1e-6)
+        {
+            r.Warnings.Add("ScenarioProfile: 權重總和為 0，使用平均加權");
+            r.RawScore = (r.WeightScore + r.ShapeScore + r.PositionScore + r.AreaScore) / 4.0;
+        }
+        else
+        {
+            // 正規化（防使用者填的權重和不為 1）
+            double w = profile.WeightFactor / sum;
+            double sh = profile.ShapeFactor / sum;
+            double p = profile.PositionFactor / sum;
+            double a = profile.AreaFactor / sum;
+            r.RawScore = w * r.WeightScore
+                       + sh * r.ShapeScore
+                       + p * r.PositionScore
+                       + a * r.AreaScore;
+        }
+        r.RawScore = Math.Clamp(r.RawScore, 0, 100);
+
+        // 飽和區
+        r.IsInPassZone = r.RawScore >= r.Config.PassZoneThreshold;
+        r.FinalScore = r.IsInPassZone ? 100.0 : r.RawScore;
+
+        // 合格判定
+        r.IsPass = r.FinalScore >= r.Config.PassThreshold;
+    }
+
+    // ─────────────────────────────────────────────────────
+    // SSIM (Wang 2004) — 沿用 v1 實作
     private static double ComputeSsim(double[,] a, double[,] b)
     {
         int n = Rows * Cols;
-
-        double sumA = 0, sumB = 0;
-        double maxA = 0, maxB = 0;
+        double sumA = 0, sumB = 0, maxA = 0, maxB = 0;
         for (int r = 0; r < Rows; r++)
             for (int c = 0; c < Cols; c++)
             {
@@ -208,9 +272,8 @@ public static class SnapshotComparisonService
         varB /= (n - 1);
         cov /= (n - 1);
 
-        // 動態範圍 L：取兩圖中較大的 max；避免兩圖都 0 造成 0/0
         double L = Math.Max(maxA, maxB);
-        if (L < 1e-6) return 1.0;  // 兩圖都空 → 完全相似
+        if (L < 1e-6) return 1.0;
 
         const double k1 = 0.01;
         const double k2 = 0.03;
@@ -220,9 +283,22 @@ public static class SnapshotComparisonService
         double num = (2 * meanA * meanB + c1) * (2 * cov + c2);
         double den = (meanA * meanA + meanB * meanB + c1) * (varA + varB + c2);
         if (den < 1e-12) return 0;
-        double ssim = num / den;
+        return Math.Clamp(num / den, 0.0, 1.0);
+    }
 
-        // SSIM 數學上 [-1, 1]，clamp 到 [0, 1] 給分
-        return Math.Clamp(ssim, 0.0, 1.0);
+    // IoU — 沿用 v1
+    private static double ComputeIoU(double[,] a, double[,] b)
+    {
+        int inter = 0, union = 0;
+        for (int r = 0; r < Rows; r++)
+            for (int c = 0; c < Cols; c++)
+            {
+                bool inA = a[r, c] > NoiseFloor;
+                bool inB = b[r, c] > NoiseFloor;
+                if (inA && inB) inter++;
+                if (inA || inB) union++;
+            }
+        if (union == 0) return 1.0;
+        return (double)inter / union;
     }
 }

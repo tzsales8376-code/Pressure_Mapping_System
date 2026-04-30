@@ -61,6 +61,15 @@ public class ComparisonResult
     // ── 評分配置（記錄用） ──
     public ScoringConfig Config { get; set; } = new();
 
+    /// <summary>實際採用的情境（自動模式判定後的結果，或使用者手動選擇的）</summary>
+    public ScoringScenario AppliedScenario { get; set; } = ScoringScenario.SimilarObject;
+
+    /// <summary>實際採用的 profile（依 AppliedScenario 從 Config 解出）</summary>
+    public ScenarioProfile AppliedProfile { get; set; } = new();
+
+    /// <summary>自動判定模式時的判定理由（顯示用，例如「IoU=0.78 ≥ 0.6 → 相似待測物」）</summary>
+    public string AutoJudgmentReason { get; set; } = "";
+
     /// <summary>計算過程的警告（資料異常時）</summary>
     public List<string> Warnings { get; set; } = new();
 }
