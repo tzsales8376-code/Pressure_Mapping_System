@@ -1,8 +1,7 @@
 namespace PressureMappingSystem.Models;
 
 /// <summary>
-/// FS-ARR-40X40-S20 感測器硬體規格配置
-/// 根據力感科技 LEGACT 規格書定義
+/// PMS-1600 感測器硬體規格配置
 /// </summary>
 public static class SensorConfig
 {

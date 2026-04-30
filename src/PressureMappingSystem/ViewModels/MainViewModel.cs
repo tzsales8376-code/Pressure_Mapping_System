@@ -533,14 +533,23 @@ public class MainViewModel : ViewModelBase, IDisposable
         _deviceDetectionService = new DeviceDetectionService();
         _roiService = new RoiAnalysisService();
 
-        string? logoPath = null;
+        byte[]? logoBytes = null;
         try
         {
-            var uri = new Uri("pack://application:,,,/Resources/app.ico");
-            // Logo bytes will be loaded from resource in PdfReportService if available
+            var uri = new Uri("pack://application:,,,/Resources/logo.png");
+            using var stream = System.Windows.Application.GetResourceStream(uri)?.Stream;
+            if (stream != null)
+            {
+                using var ms = new System.IO.MemoryStream();
+                stream.CopyTo(ms);
+                logoBytes = ms.ToArray();
+            }
         }
-        catch { }
-        _pdfReportService = new PdfReportService(_exportService, _exportFolder, logoPath);
+        catch
+        {
+            // 載入失敗就走文字 fallback（橘色 TRANZX 文字）
+        }
+        _pdfReportService = new PdfReportService(_exportService, _exportFolder, logoBytes);
 
         // 載入使用者已儲存的設定（若有）
         LoadUserSettings();

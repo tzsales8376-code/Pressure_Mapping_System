@@ -6,7 +6,7 @@ using PressureMappingSystem.Models;
 namespace PressureMappingSystem.Services;
 
 /// <summary>
-/// Serial 通訊服務：透過 USB COM Port 讀取 FS-ARR-40X40-S20 感測器資料
+/// Serial 通訊服務：透過 USB COM Port 讀取 PMS-1600 感測器資料
 ///
 /// 支援多種解析模式：
 ///   Mode 1 (ASCII-FRAME): "FRAME:N" / "ROW:R:v1,v2,...,v40" / "END"

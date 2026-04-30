@@ -6,7 +6,7 @@ namespace PressureMappingSystem.Services;
 /// <summary>
 /// 校正服務：管理校正配方、執行電阻→壓力轉換
 ///
-/// 校正原理（依據 FS-ARR-40X40-S20 規格書的 R@F 曲線）：
+/// 校正原理（依據 PMS-1600 規格書的 R@F 曲線）：
 /// - 電阻與壓力呈非線性反比關係
 /// - 未施力: R > 1MΩ (開路)
 /// - 觸發力 5g: R ≈ 500KΩ
@@ -44,7 +44,7 @@ public class CalibrationService
         {
             RecipeId = "STD-001",
             Name = "通用標準校正",
-            Description = "依據 FS-ARR-40X40-S20 規格書 R@F 特性曲線建立的通用校正配方",
+            Description = "依據 PMS-1600 規格書 R@F 特性曲線建立的通用校正配方",
             SensorSerialNumber = "UNIVERSAL",
             Interpolation = InterpolationMethod.CubicSpline,
             LookupTable = new List<CalibrationPoint>

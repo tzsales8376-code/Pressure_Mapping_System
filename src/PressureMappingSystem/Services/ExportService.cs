@@ -417,7 +417,7 @@ public class ExportService
             canvas.DrawText($"{tick:F0}g", x + width * 0.72f, ty + 4, textPaint);
         }
 
-        // 標題
+        // 標題（在色條上方留 18+14=32px 空間，避免與色條重疊）
         using var titlePaint = new SKPaint
         {
             Color = SKColors.Black,
@@ -426,8 +426,9 @@ public class ExportService
             Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold,
                 SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
         };
-        canvas.DrawText("Pressure", x, y - 8, titlePaint);
-        canvas.DrawText("(g)", x, y - 8 + 14, titlePaint);
+        // 兩行標題：Pressure 上、(g) 下、再離色條 4px
+        canvas.DrawText("Pressure", x, y - 22, titlePaint);
+        canvas.DrawText("(g)", x, y - 8, titlePaint);
     }
 
     private static double CalculateNiceTickStep(double range, int targetTicks)

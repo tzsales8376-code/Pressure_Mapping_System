@@ -33,6 +33,22 @@ public class PdfReportService
     }
 
     /// <summary>
+    /// 接收 logo bytes 的重載 constructor（用於從 WPF pack URI / Resource 載入 logo）。
+    /// 用 byte[] 比 logoPath 適合 WPF 場景，因 pack URI 不是檔案系統路徑、無法用 File.ReadAllBytes 讀取。
+    /// </summary>
+    public PdfReportService(ExportService exportService, string outputFolder, byte[]? logoBytes)
+    {
+        _exportService = exportService;
+        _outputFolder = outputFolder;
+        Directory.CreateDirectory(_outputFolder);
+
+        QuestPDF.Settings.License = LicenseType.Community;
+
+        if (logoBytes != null && logoBytes.Length > 0)
+            _logoBytes = logoBytes;
+    }
+
+    /// <summary>
     /// 生成單幀量測報告
     /// </summary>
     public string GenerateMeasurementReport(SensorFrame frame, CalibrationRecipe recipe,
@@ -315,7 +331,7 @@ public class PdfReportService
             row.RelativeItem().AlignRight().Column(col =>
             {
                 col.Item().Text(title).Bold().FontSize(16).FontColor("#2B5797");
-                col.Item().Text($"FS-ARR-40X40-S20 | 40×40 Array").FontSize(9).FontColor("#888888");
+                col.Item().Text($"PMS-1600 | 40×40 Array").FontSize(9).FontColor("#888888");
             });
         });
     }
@@ -334,7 +350,7 @@ public class PdfReportService
 
                 AddInfoRow(table, L.Get("Report.Generated"), DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                 AddInfoRow(table, L.Get("Report.Operator"), operatorName);
-                AddInfoRow(table, L.Get("Report.Sensor"), "FS-ARR-40X40-S20");
+                AddInfoRow(table, L.Get("Report.Sensor"), "PMS-1600");
                 AddInfoRow(table, L.Get("Report.CalRecipe"), recipe.Name);
             });
         });
@@ -474,9 +490,9 @@ public class PdfReportService
         if (scaleMax < 1) scaleMax = 1;
         double diffScaleMax = result.MaxAbsDiff > 0 ? result.MaxAbsDiff : 1;
 
-        byte[] heatmapA = RenderSnapshotHeatmap(reference, scaleMax, "A — Reference");
-        byte[] heatmapB = RenderSnapshotHeatmap(dut, scaleMax, "B — DUT");
-        byte[] heatmapDiff = RenderSnapshotHeatmap(reference, diffScaleMax, "|A − B|", absDiff: result.AbsDiff);
+        byte[] heatmapA = RenderSnapshotHeatmap(reference, scaleMax, "A - Reference");
+        byte[] heatmapB = RenderSnapshotHeatmap(dut, scaleMax, "B - DUT");
+        byte[] heatmapDiff = RenderSnapshotHeatmap(reference, diffScaleMax, "|A - B|", absDiff: result.AbsDiff);
 
         Document.Create(container =>
         {
@@ -590,8 +606,8 @@ public class PdfReportService
             };
 
             AddInfoRow(table, "Generated", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-            AddInfoRow(table, "Operator", string.IsNullOrEmpty(operatorName) ? "—" : operatorName);
-            AddInfoRow(table, "Sensor", "FS-ARR-40X40-S20");
+            AddInfoRow(table, "Operator", string.IsNullOrEmpty(operatorName) ? "-" : operatorName);
+            AddInfoRow(table, "Sensor", "PMS-1600");
             AddInfoRow(table, "Mode", "Reference vs DUT");
             AddInfoRow(table, "A captured", a.CapturedAt.ToString("HH:mm:ss"));
             AddInfoRow(table, "B captured", b.CapturedAt.ToString("HH:mm:ss"));
