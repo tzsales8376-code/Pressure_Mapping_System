@@ -54,8 +54,6 @@ public partial class Surface3DControl : UserControl
     private DateTime _lastRenderTime = DateTime.MinValue;
     private const int MinRenderIntervalMs = 50;
 
-    private bool _legendBuilt;
-
     public Surface3DControl()
     {
         InitializeComponent();
@@ -551,7 +549,6 @@ public partial class Surface3DControl : UserControl
         }
 
         LegendRangeText.Text = $"0 - {maxVal:F0} gf";
-        _legendBuilt = true;
     }
 
     private void ResetView_Click(object sender, RoutedEventArgs e)

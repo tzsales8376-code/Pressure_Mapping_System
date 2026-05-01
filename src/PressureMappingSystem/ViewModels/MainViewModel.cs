@@ -84,7 +84,6 @@ public class MainViewModel : ViewModelBase, IDisposable
     private bool _isRoiSelectMode;
     private RoiType _selectedRoiType = RoiType.Rectangle;
     private string _roiStatsText = "";
-    private int _roiStartRow, _roiStartCol;
 
     // Device Detection
     private bool _autoDetectEnabled = true;

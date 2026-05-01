@@ -621,34 +621,38 @@ public class PdfReportService
         string passColor = r.IsPass ? "#4CAF50" : "#E53935";
         string verdictText = r.IsPass ? "PASS" : "FAIL";
 
-        container.PaddingTop(6).Background("#F8F8FB").Padding(12).Row(row =>
+        // 外層用 Column 包，這樣 Row（分數+verdict）與 Veto 警告 box 才能垂直堆疊
+        container.PaddingTop(6).Column(col =>
         {
-            row.RelativeItem(1).Column(col =>
+            col.Item().Background("#F8F8FB").Padding(12).Row(row =>
             {
-                col.Item().Text("Final Score").FontSize(11).FontColor("#666666");
-                col.Item().Text(r.FinalScore.ToString("F0")).Bold().FontSize(48).FontColor("#ED7D31");
-                if (r.IsInPassZone && Math.Abs(r.FinalScore - r.RawScore) > 0.5)
+                row.RelativeItem(1).Column(leftCol =>
                 {
-                    col.Item().Text($"(saturated → 100, raw {r.RawScore:F1})")
+                    leftCol.Item().Text("Final Score").FontSize(11).FontColor("#666666");
+                    leftCol.Item().Text(r.FinalScore.ToString("F0")).Bold().FontSize(48).FontColor("#ED7D31");
+                    if (r.IsInPassZone && Math.Abs(r.FinalScore - r.RawScore) > 0.5)
+                    {
+                        leftCol.Item().Text($"(saturated → 100, raw {r.RawScore:F1})")
+                            .FontSize(8).FontColor("#888888");
+                    }
+                    else
+                    {
+                        leftCol.Item().Text($"(raw {r.RawScore:F1})").FontSize(8).FontColor("#888888");
+                    }
+                });
+
+                row.RelativeItem(1).AlignRight().AlignMiddle().Column(rightCol =>
+                {
+                    rightCol.Item().Background(passColor).Padding(16).AlignCenter().Text(verdictText)
+                        .Bold().FontSize(36).FontColor(Colors.White);
+                    rightCol.Item().PaddingTop(4).AlignRight().Text(
+                        $"Pass threshold: {r.Config.PassThreshold:F0}    " +
+                        $"Pass-zone: {r.Config.PassZoneThreshold:F0}")
                         .FontSize(8).FontColor("#888888");
-                }
-                else
-                {
-                    col.Item().Text($"(raw {r.RawScore:F1})").FontSize(8).FontColor("#888888");
-                }
+                });
             });
 
-            row.RelativeItem(1).AlignRight().AlignMiddle().Column(col =>
-            {
-                col.Item().Background(passColor).Padding(16).AlignCenter().Text(verdictText)
-                    .Bold().FontSize(36).FontColor(Colors.White);
-                col.Item().PaddingTop(4).AlignRight().Text(
-                    $"Pass threshold: {r.Config.PassThreshold:F0}    " +
-                    $"Pass-zone: {r.Config.PassZoneThreshold:F0}")
-                    .FontSize(8).FontColor("#888888");
-            });
-
-            // Critical Veto 提示（觸發時才顯示）
+            // Critical Veto 提示（觸發時才顯示，獨立紅色 box 在 verdict row 下方）
             if (r.VetoTriggered)
             {
                 col.Item().PaddingTop(4).Background("#E53935").Padding(10).Column(vetoCol =>

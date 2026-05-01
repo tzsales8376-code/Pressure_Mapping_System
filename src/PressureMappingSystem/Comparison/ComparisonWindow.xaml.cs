@@ -5,6 +5,7 @@ using System.Windows;
 using PressureMappingSystem.Comparison.Models;
 using PressureMappingSystem.Comparison.Services;
 using PressureMappingSystem.Models;
+using PressureMappingSystem.Services;
 
 namespace PressureMappingSystem.Comparison;
 
@@ -14,10 +15,13 @@ public partial class ComparisonWindow : Window
     private readonly CapturedSnapshot _b;     // DUT (待測)
     private readonly string _exportFolder;
     private readonly ScoringConfig _config;
+    private readonly PdfReportService? _pdfService;
     private ComparisonResult? _result;
     private bool _initializing = true;
 
-    public ComparisonWindow(CapturedSnapshot a, CapturedSnapshot b, string? exportFolder = null)
+    public ComparisonWindow(CapturedSnapshot a, CapturedSnapshot b,
+        string? exportFolder = null,
+        PdfReportService? pdfService = null)
     {
         InitializeComponent();
         _a = a ?? throw new ArgumentNullException(nameof(a));
@@ -25,6 +29,7 @@ public partial class ComparisonWindow : Window
         _exportFolder = exportFolder ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "TRANZX", "PressureData");
+        _pdfService = pdfService;
 
         // 載入評分配置（外部 JSON）
         _config = ScoringConfig.LoadOrCreateDefault();
@@ -207,13 +212,34 @@ public partial class ComparisonWindow : Window
     private void SaveReport_Click(object sender, RoutedEventArgs e)
     {
         if (_result == null) return;
+
+        // 優先用 PDF 報告
+        if (_pdfService != null)
+        {
+            try
+            {
+                string pdfPath = _pdfService.GenerateComparisonReport(_a, _b, _result);
+                MessageBox.Show($"PDF 比對報告已儲存至:\n{pdfPath}", "匯出成功",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            catch (Exception ex)
+            {
+                // PDF 失敗 → 退回 txt（不擋住使用者）
+                MessageBox.Show(
+                    $"PDF 產生失敗，將改存純文字報告。\n錯誤：{ex.Message}",
+                    "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        // Fallback: txt 報告（與舊版相容）
         try
         {
             Directory.CreateDirectory(_exportFolder);
             string filename = $"{DateTime.Now:yyyyMMdd_HHmmss}_Comparison_{(_result.IsPass ? "PASS" : "FAIL")}.txt";
             string fullPath = Path.Combine(_exportFolder, filename);
             File.WriteAllText(fullPath, BuildReportText(), Encoding.UTF8);
-            MessageBox.Show($"比對報告已儲存至:\n{fullPath}", "匯出成功",
+            MessageBox.Show($"比對報告（txt）已儲存至:\n{fullPath}", "匯出成功",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
